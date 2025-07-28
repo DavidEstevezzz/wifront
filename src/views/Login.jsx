@@ -14,19 +14,20 @@ export default function Login() {
     const { darkMode, toggleDarkMode } = useDarkMode();
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setLoading(true);
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-        try {
-            const response = await AuthApiService.login({ email, password });
-            setToken(response.data.access_token);
-        } catch (err) {
-            setError(err.response?.data?.message || 'Credenciales incorrectas');
-        } finally {
-            setLoading(false);
-        }
-    };
+  try {
+    const { access_token } = await AuthApiService.login({ email, password });
+    
+    setToken(access_token);
+  } catch (err) {
+    setError(err.response?.data?.message || 'Credenciales incorrectas');
+  } finally {
+    setLoading(false);
+  }
+};
 
     return (
         <div className={`p-8 rounded-lg shadow-lg ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>

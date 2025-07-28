@@ -1,7 +1,7 @@
 // src/services/UsuarioApiService.js
 import BaseApiService from './BaseApiService';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://api.wicontrol.site';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.wicontrol.site';
 
 class UsuarioApiService {
     // Obtener todos los usuarios (paginados según el backend)
@@ -57,6 +57,21 @@ class UsuarioApiService {
             console.error(`Error deleting usuario ${id}:`, error);
             throw error;
         }
+    }
+
+    async activateUsuario(id) {
+        const response = await BaseApiService.patch(`${API_URL}/api/usuarios/${id}/activate`);
+        return response.data;
+    }
+
+    /**
+ * Obtiene las empresas asignadas a un usuario
+ * @param {number} usuarioId - ID del usuario
+ * @returns {Promise} - Promesa con las empresas del usuario
+ */
+    async getUsuarioEmpresas(id) {
+        const response = await BaseApiService.get(`${API_URL}/api/usuarios/${id}/empresas`);
+        return response.data;
     }
 }
 
