@@ -85,18 +85,33 @@ export default function CreateGranjaModal({ isOpen, onClose, onGranjaCreated }) 
     e.preventDefault();
     setLoading(true);
     setError('');
+    
     try {
-      await GranjaApiService.createGranja({
+      const dataToSend = {
         ...formData,
+        // Convertir a tipos correctos
         codigo_postal: parseInt(formData.codigo_postal, 10),
         numero_naves: parseInt(formData.numero_naves, 10) || 1,
-        fecha_hora_alta: new Date().toISOString(),
-        alta: 1
-      });
+        empresa_id: parseInt(formData.empresa_id, 10),
+        
+        // Convertir campos de usuario a enteros o null
+        usuario_contacto: formData.usuario_contacto ? parseInt(formData.usuario_contacto, 10) : null,
+        ganadero: formData.ganadero ? parseInt(formData.ganadero, 10) : null,
+        responsable: formData.responsable ? parseInt(formData.responsable, 10) : null,
+        
+        // Campos obligatorios con formato correcto
+        fecha_hora_alta: new Date().toISOString().slice(0, 19).replace('T', ' '), // ✅ Formato MySQL
+        alta: true  // ✅ Boolean en lugar de 1
+      };
+      
+      console.log('Datos a enviar:', dataToSend); // Para debug
+      
+      await GranjaApiService.createGranja(dataToSend);
       onGranjaCreated();
       onClose();
     } catch (err) {
-      setError('Error al crear granja');
+      console.error('Error al crear granja:', err);
+      setError(err.response?.data?.message || 'Error al crear granja');
     } finally {
       setLoading(false);
     }

@@ -2837,6 +2837,187 @@ export default function PesadasCamadaView({
         }];
     };
 
+    const generateExcelPesadasIndividuales = async () => {
+        const filteredPesadas = getFilteredDailyPesadas();
+
+        if (!filteredPesadas || filteredPesadas.length === 0) {
+            setError('No hay pesadas disponibles para exportar');
+            return;
+        }
+
+        try {
+            const ExcelJS = await import('exceljs');
+            const workbook = new ExcelJS.Workbook();
+
+            // Configurar propiedades del documento
+            workbook.creator = 'Sistema de Gestión Avícola';
+            workbook.created = new Date();
+
+            // Crear hoja de cálculo
+            const worksheet = workbook.addWorksheet('Listado de Pesadas');
+
+            // Colores del tema
+            const colors = {
+                primary: '3B82F6',
+                success: '10B981',
+                danger: 'EF4444',
+                warning: 'F59E0B',
+                light: 'F8FAFC',
+                dark: '1F2937'
+            };
+
+            // ENCABEZADO DEL DOCUMENTO
+            const titleRow = worksheet.addRow(['LISTADO DETALLADO DE PESADAS']);
+            titleRow.getCell(1).font = { size: 16, bold: true, color: { argb: colors.dark } };
+            titleRow.getCell(1).alignment = { horizontal: 'center' };
+            worksheet.mergeCells('A1:E1');
+            titleRow.height = 30;
+
+            // Información de la camada
+            worksheet.addRow([]);
+            const infoRow1 = worksheet.addRow(['Camada:', camadaInfo?.nombre_camada || 'N/A', '', 'Fecha:', fecha || 'N/A']);
+            const infoRow2 = worksheet.addRow(['Dispositivo:', selectedDeviceForDaily === 'todos' ? 'Todos los dispositivos' : selectedDeviceForDaily, '', 'Total pesadas:', filteredPesadas.length]);
+
+            [infoRow1, infoRow2].forEach(row => {
+                row.getCell(1).font = { bold: true };
+                row.getCell(4).font = { bold: true };
+            });
+
+            worksheet.addRow([]);
+
+            // ENCABEZADOS DE LA TABLA
+            const headerRow = worksheet.addRow(['Dispositivo', 'Peso (g)', 'Hora', 'Estado', 'Observaciones']);
+            headerRow.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } };
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            });
+
+            // DATOS DE LAS PESADAS
+            filteredPesadas.forEach((pesada, index) => {
+                const fecha = new Date(pesada.fecha);
+                const hora = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                let estadoTexto = '';
+                let observaciones = '';
+                let colorEstado = colors.dark;
+
+                switch (pesada.estado) {
+                    case 'aceptada':
+                        estadoTexto = 'Aceptada';
+                        colorEstado = colors.success;
+                        break;
+                    case 'rechazada':
+                        estadoTexto = 'Rechazada';
+                        observaciones = 'Fuera del coeficiente de homogeneidad';
+                        colorEstado = colors.danger;
+                        break;
+                    case 'descartado':
+                        estadoTexto = 'Descartada';
+                        observaciones = 'Fuera del rango de peso de referencia';
+                        colorEstado = colors.warning;
+                        break;
+                    default:
+                        estadoTexto = pesada.estado || 'Desconocido';
+                }
+
+                const dataRow = worksheet.addRow([
+                    pesada.id_dispositivo,
+                    parseFloat(pesada.valor).toFixed(1),
+                    hora,
+                    estadoTexto,
+                    observaciones
+                ]);
+
+                // Aplicar formato a la fila
+                dataRow.eachCell((cell, colNumber) => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+
+                    if (index % 2 === 1) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } };
+                    }
+
+                    // Centrar contenido
+                    if (colNumber !== 5) { // No centrar las observaciones
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    }
+
+                    // Color del estado
+                    if (colNumber === 4) {
+                        cell.font = { bold: true, color: { argb: colorEstado } };
+                    }
+
+                    // Formato del peso
+                    if (colNumber === 2) {
+                        cell.numFmt = '#,##0.0 "g"';
+                    }
+                });
+            });
+
+            // RESUMEN AL FINAL
+            worksheet.addRow([]);
+            const resumenRow = worksheet.addRow(['RESUMEN ESTADÍSTICO']);
+            resumenRow.getCell(1).font = { size: 14, bold: true, color: { argb: colors.dark } };
+            worksheet.mergeCells(`A${resumenRow.number}:E${resumenRow.number}`);
+            resumenRow.getCell(1).alignment = { horizontal: 'center' };
+
+            const stats = getFilteredDailyStats();
+            const aceptadas = filteredPesadas.filter(p => p.estado === 'aceptada').length;
+            const rechazadas = filteredPesadas.filter(p => p.estado === 'rechazada').length;
+            const descartadas = filteredPesadas.filter(p => p.estado === 'descartado').length;
+
+            worksheet.addRow(['Total pesadas:', filteredPesadas.length, '', 'Peso medio aceptadas:', `${stats.peso_medio_aceptadas.toFixed(1)} g`]);
+            worksheet.addRow(['Aceptadas:', aceptadas, '', 'Peso medio global:', `${stats.peso_medio_global.toFixed(1)} g`]);
+            worksheet.addRow(['Rechazadas:', rechazadas, '', 'Coef. variación:', `${stats.coef_variacion.toFixed(1)}%`]);
+            worksheet.addRow(['Descartadas:', descartadas, '', '', '']);
+
+            // Ajustar anchos de columna
+            worksheet.getColumn(1).width = 15; // Dispositivo
+            worksheet.getColumn(2).width = 12; // Peso
+            worksheet.getColumn(3).width = 10; // Hora
+            worksheet.getColumn(4).width = 12; // Estado
+            worksheet.getColumn(5).width = 35; // Observaciones
+
+            // Generar archivo y descargar
+            const fileName = `Pesadas_${camadaInfo?.nombre_camada?.replace(/\s+/g, '_') || 'Camada'}_${fecha}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.click();
+
+            URL.revokeObjectURL(url);
+
+            // Mostrar mensaje de éxito
+            const prevError = error;
+            setError('Listado de pesadas exportado con éxito a Excel');
+            setTimeout(() => {
+                if (error === 'Listado de pesadas exportado con éxito a Excel') {
+                    setError(prevError);
+                }
+            }, 3000);
+
+        } catch (err) {
+            console.error('Error al generar Excel:', err);
+            setError('Error al generar el archivo Excel: ' + err.message);
+        }
+    };
+
 
     const getStackedBarChartLayout = () => ({
         ...baseLayout,
@@ -3539,6 +3720,7 @@ export default function PesadasCamadaView({
         // ✅ EVALUACIONES SEGÚN LA TABLA DE REFERENCIA
         const uniformityEval = getUniformityEvaluation(enhancedInfo?.uniformidad || 0);
         const cvEval = getCoefficientVariationEvaluation(filteredStats.coef_variacion || 0);
+        const filteredPesadas = getFilteredDailyPesadas();
 
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -3546,7 +3728,7 @@ export default function PesadasCamadaView({
                 <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total pesadas</p>
                     <p className="mt-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
-                        {filteredStats.total_pesadas}
+                        {filteredPesadas.length}
                     </p>
                 </div>
 
@@ -3665,6 +3847,16 @@ export default function PesadasCamadaView({
                             : `Pesadas del dispositivo ${selectedDeviceForDaily} (${filteredPesadas.length})`
                         }
                     </h3>
+                    <button
+                        onClick={generateExcelPesadasIndividuales}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md flex items-center text-sm"
+                        disabled={!filteredPesadas || filteredPesadas.length === 0}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Exportar a Excel
+                    </button>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                         Excluye valores negativos y menores de 30g • Ordenado por hora más reciente
                     </p>
@@ -4741,7 +4933,7 @@ export default function PesadasCamadaView({
             {!isEmbedded ? (
                 // Vista completa cuando no está incrustado
                 <div className="p-6 rounded-lg shadow-md mb-6 bg-gray-50 dark:bg-gray-800">
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                         {/* Empresa */}
                         <div>
                             <label className="block mb-1 font-medium text-gray-800 dark:text-gray-200">Empresa</label>
@@ -4760,8 +4952,8 @@ export default function PesadasCamadaView({
                             </select>
                         </div>
 
-                        {/* Granja */}
-                        <div>
+                        {/* Granja - Ocupa 2 columnas para ser más ancho */}
+                        <div className="md:col-span-2">
                             <label className="block mb-1 font-medium text-gray-800 dark:text-gray-200">Granja</label>
                             <select
                                 className="w-full p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white"
@@ -4789,8 +4981,15 @@ export default function PesadasCamadaView({
                             >
                                 <option value="">-- Seleccione --</option>
                                 {camadas.map(c => (
-                                    <option key={c.id_camada} value={c.id_camada}>
-                                        {c.nombre_camada}
+                                    <option
+                                        key={c.id_camada}
+                                        value={c.id_camada}
+                                        style={{
+                                            color: c.fecha_hora_final ? '#dc2626' : 'inherit', // Rojo si está finalizada
+                                            fontWeight: c.fecha_hora_final ? 'bold' : 'normal'
+                                        }}
+                                    >
+                                        {c.nombre_camada} {c.fecha_hora_final ? '(Finalizada)' : ''}
                                     </option>
                                 ))}
                             </select>
