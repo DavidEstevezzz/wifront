@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faEdit, faSave, faInfoCircle, faLink, faUnlink, faSearch } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faEdit, faSave, faInfoCircle, faLink, faUnlink, faSearch, faCalendarTimes } from '@fortawesome/free-solid-svg-icons';
 import CamadaApiService from '../services/CamadaApiService';
 import GranjaApiService from '../services/GranjaApiService';
 import { useDarkMode } from '../contexts/DarkModeContext';
 
 export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdated }) {
   const { darkMode } = useDarkMode();
-  
+
   const [formData, setFormData] = useState({
     nombre_camada: '',
     sexaje: '',
     tipo_ave: '',
     tipo_estirpe: '',
     fecha_hora_inicio: '',
+    fecha_hora_final: '', // ✅ NUEVO: Campo para fecha fin
     codigo_granja: '',
     id_naves: '',
   });
-  
+
   const [granjas, setGranjas] = useState([]);
   const [dispositivosDisponibles, setDispositivosDisponibles] = useState([]);
   const [dispositivosVinculados, setDispositivosVinculados] = useState([]);
@@ -32,21 +33,22 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
   useEffect(() => {
     if (isOpen && camada) {
       console.log('🔄 Cargando datos de camada:', camada);
-      
+
       setFormData({
         nombre_camada: camada.nombre_camada || '',
         sexaje: camada.sexaje || '',
         tipo_ave: camada.tipo_ave || '',
         tipo_estirpe: camada.tipo_estirpe || '',
-        fecha_hora_inicio: camada.fecha_hora_inicio ? camada.fecha_hora_inicio.slice(0,16) : '',
+        fecha_hora_inicio: camada.fecha_hora_inicio ? camada.fecha_hora_inicio.slice(0, 16) : '',
+        fecha_hora_final: camada.fecha_hora_final ? camada.fecha_hora_final.slice(0, 16) : '', // ✅ NUEVO: Cargar fecha fin
         codigo_granja: camada.codigo_granja || '',
         id_naves: camada.id_naves || '',
       });
-      
+
       setDeviceSearch('');
       setError('');
       setSuccess('');
-      
+
       loadGranjas();
       loadDispositivosVinculados();
     }
@@ -75,7 +77,7 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
 
   const loadDispositivosVinculados = async () => {
     if (!camada) return;
-    
+
     try {
       console.log('🔍 Cargando dispositivos vinculados de camada:', camada.id_camada);
       const dispositivos = await CamadaApiService.getDispositivosVinculadosByCamada(camada.id_camada);
@@ -105,16 +107,16 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
 
   const handleVincularDispositivo = async (dispositivoId) => {
     if (!camada) return;
-    
+
     setProcessingDevice(dispositivoId);
     try {
       console.log('🔗 Vinculando dispositivo:', dispositivoId);
       await CamadaApiService.attachDispositivo(camada.id_camada, dispositivoId);
-      
+
       // Recargar listas
       await loadDispositivosVinculados();
       await loadDispositivosDisponibles(formData.codigo_granja);
-      
+
       setSuccess('Dispositivo vinculado exitosamente');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -127,16 +129,16 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
 
   const handleDesvincularDispositivo = async (dispositivoId) => {
     if (!camada) return;
-    
+
     setProcessingDevice(dispositivoId);
     try {
       console.log('🔓 Desvinculando dispositivo:', dispositivoId);
       await CamadaApiService.detachDispositivo(camada.id_camada, dispositivoId);
-      
+
       // Recargar listas
       await loadDispositivosVinculados();
       await loadDispositivosDisponibles(formData.codigo_granja);
-      
+
       setSuccess('Dispositivo desvinculado exitosamente');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -154,41 +156,65 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // ✅ NUEVA FUNCIÓN: Validación de fechas
+  const validateDates = () => {
+    if (formData.fecha_hora_inicio && formData.fecha_hora_final) {
+      const fechaInicio = new Date(formData.fecha_hora_inicio);
+      const fechaFin = new Date(formData.fecha_hora_final);
+
+      if (fechaFin <= fechaInicio) {
+        setError('La fecha de finalización debe ser posterior a la fecha de inicio');
+        return false;
+      }
+    }
+    return true;
+  };
+
   // Filtrar dispositivos disponibles con búsqueda
-  const filteredDispositivosDisponibles = Array.isArray(dispositivosDisponibles) 
-    ? dispositivosDisponibles.filter(d => 
-        d && d.numero_serie && d.numero_serie.toLowerCase().includes(deviceSearch.toLowerCase())
-      )
+  const filteredDispositivosDisponibles = Array.isArray(dispositivosDisponibles)
+    ? dispositivosDisponibles.filter(d =>
+      d && d.numero_serie && d.numero_serie.toLowerCase().includes(deviceSearch.toLowerCase())
+    )
     : [];
 
   // Filtrar dispositivos vinculados con búsqueda
-  const filteredDispositivosVinculados = Array.isArray(dispositivosVinculados) 
-    ? dispositivosVinculados.filter(d => 
-        d && d.numero_serie && d.numero_serie.toLowerCase().includes(deviceSearch.toLowerCase())
-      )
+  const filteredDispositivosVinculados = Array.isArray(dispositivosVinculados)
+    ? dispositivosVinculados.filter(d =>
+      d && d.numero_serie && d.numero_serie.toLowerCase().includes(deviceSearch.toLowerCase())
+    )
     : [];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!camada) return;
-    
+
+    // ✅ NUEVO: Validar fechas antes de enviar
+    if (!validateDates()) {
+      return;
+    }
+
     setLoading(true);
     setError('');
-    
+
     try {
       console.log('💾 Guardando cambios en camada:', camada.id_camada);
-      
-      await CamadaApiService.updateCamada(camada.id_camada, {
+
+      const updateData = {
         ...formData,
         fecha_hora_inicio: formData.fecha_hora_inicio
           ? new Date(formData.fecha_hora_inicio).toISOString()
           : null,
-      });
+        fecha_hora_final: formData.fecha_hora_final // ✅ NUEVO: Incluir fecha fin
+          ? new Date(formData.fecha_hora_final).toISOString()
+          : null,
+      };
+
+      await CamadaApiService.updateCamada(camada.id_camada, updateData);
 
       console.log('✅ Camada actualizada exitosamente');
       onCamadaUpdated();
       onClose();
-      
+
     } catch (err) {
       console.error('❌ Error al actualizar camada:', err);
       setError(`Error al actualizar la camada: ${err.response?.data?.message || err.message}`);
@@ -201,15 +227,22 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
       <div className="fixed inset-0 bg-black opacity-50" onClick={onClose} />
       <div className={`${darkMode ? 'dark ' : ''}relative bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-6xl mx-4 max-h-[95vh] overflow-y-auto`}>
-        
+
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center">
             <FontAwesomeIcon icon={faEdit} className="mr-2 text-blue-600" />
             Editar Camada: {formData.nombre_camada}
+            {/* ✅ NUEVO: Indicador de estado */}
+            {formData.fecha_hora_final && (
+              <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                <FontAwesomeIcon icon={faCalendarTimes} className="mr-1" />
+                Finalizada
+              </span>
+            )}
           </h2>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <FontAwesomeIcon icon={faTimes} className="text-xl" />
@@ -244,24 +277,24 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Nombre de Camada *
                   </label>
-                  <input 
-                    name="nombre_camada" 
-                    value={formData.nombre_camada} 
-                    onChange={handleChange} 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800" 
+                  <input
+                    name="nombre_camada"
+                    value={formData.nombre_camada}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Sexaje *
                   </label>
                   <select
-                    name="sexaje" 
-                    value={formData.sexaje} 
-                    onChange={handleChange} 
-                    required 
+                    name="sexaje"
+                    value={formData.sexaje}
+                    onChange={handleChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                   >
                     <option value="">Seleccionar...</option>
@@ -270,98 +303,133 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
                     <option value="Machos">Machos</option>
                   </select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Tipo de Ave *
                   </label>
-                  <input 
-                    name="tipo_ave" 
-                    value={formData.tipo_ave} 
-                    onChange={handleChange} 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800" 
+                  <input
+                    name="tipo_ave"
+                    value={formData.tipo_ave}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                     placeholder="Ej: Broiler, Pavo, etc."
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Tipo de Estirpe *
                   </label>
-                  <input 
-                    name="tipo_estirpe" 
-                    value={formData.tipo_estirpe} 
-                    onChange={handleChange} 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800" 
+                  <input
+                    name="tipo_estirpe"
+                    value={formData.tipo_estirpe}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                     placeholder="Ej: Ross 308, Cobb 500, etc."
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Fecha de Inicio
                   </label>
-                  <input 
-                    type="datetime-local" 
-                    name="fecha_hora_inicio" 
-                    value={formData.fecha_hora_inicio} 
-                    onChange={handleChange} 
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800" 
+                  <input
+                    type="datetime-local"
+                    name="fecha_hora_inicio"
+                    value={formData.fecha_hora_inicio}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                   />
                 </div>
-                
+
+                {/* ✅ NUEVO: Campo para fecha de finalización */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <FontAwesomeIcon icon={faCalendarTimes} className="mr-1 text-red-500" />
+                    Fecha de Finalización
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="fecha_hora_final"
+                    value={formData.fecha_hora_final}
+                    onChange={handleChange}
+                    min={formData.fecha_hora_inicio} // ✅ VALIDACIÓN: No puede ser anterior al inicio
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Dejar vacío si la camada está activa. Al establecer una fecha, la camada se marcará como finalizada.
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Granja *
                   </label>
-                  <select 
-                    name="codigo_granja" 
-                    value={formData.codigo_granja} 
-                    onChange={handleChange} 
-                    required 
+                  <select
+                    name="codigo_granja"
+                    value={formData.codigo_granja}
+                    onChange={handleChange}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                   >
                     <option value="">Seleccione una granja...</option>
                     {granjas.map(granja => (
-                      <option 
-                        key={granja.numero_rega || granja.codigo_granja || granja.id} 
+                      <option
+                        key={granja.numero_rega || granja.codigo_granja || granja.id}
                         value={granja.numero_rega || granja.codigo_granja}
                       >
-                        {granja.nombre_granja || granja.numero_rega || granja.codigo_granja}
+                        {granja.nombre || granja.nombre_granja} ({granja.numero_rega || granja.codigo_granja})
                       </option>
                     ))}
                   </select>
                 </div>
-                
-                <div className="md:col-span-2">
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Nave
                   </label>
-                  <input 
-                    name="id_naves" 
-                    value={formData.id_naves} 
-                    onChange={handleChange} 
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800" 
+                  <input
+                    name="id_naves"
+                    value={formData.id_naves}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                     placeholder="Ej: Nave 1, Nave A, etc."
                   />
                 </div>
               </div>
 
+              {/* ✅ NUEVO: Información de duración si hay ambas fechas */}
+              {formData.fecha_hora_inicio && formData.fecha_hora_final && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <div className="flex items-center">
+                    <FontAwesomeIcon icon={faInfoCircle} className="text-blue-500 mr-2" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-800 dark:text-blue-200">Duración de la camada:</p>
+                      <p className="text-blue-600 dark:text-blue-300">
+                        {Math.floor((new Date(formData.fecha_hora_final) - new Date(formData.fecha_hora_inicio)) / (1000 * 60 * 60 * 24))} días
+                        ({new Date(formData.fecha_hora_inicio).toLocaleDateString('es-ES')} - {new Date(formData.fecha_hora_final).toLocaleDateString('es-ES')})
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button 
-                  type="button" 
-                  onClick={onClose} 
+                <button
+                  type="button"
+                  onClick={onClose}
                   className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancelar
                 </button>
-                
-                <button 
-                  type="submit" 
-                  disabled={loading} 
+
+                <button
+                  type="submit"
+                  disabled={loading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center transition-colors"
                 >
                   <FontAwesomeIcon icon={faSave} className="mr-2" />
@@ -379,7 +447,7 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
                     Gestión de Dispositivos
                   </h3>
                 </div>
-                
+
                 {/* Estadísticas */}
                 <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
                   <div className="grid grid-cols-2 gap-4 text-sm">
@@ -397,16 +465,16 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Búsqueda */}
                 <div className="relative">
                   <FontAwesomeIcon icon={faSearch} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input 
+                  <input
                     type="text"
-                    placeholder="Buscar dispositivo por número de serie..." 
-                    value={deviceSearch} 
-                    onChange={(e) => setDeviceSearch(e.target.value)} 
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800" 
+                    placeholder="Buscar dispositivo por número de serie..."
+                    value={deviceSearch}
+                    onChange={(e) => setDeviceSearch(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring focus:ring-blue-200 dark:focus:ring-blue-800"
                   />
                 </div>
 
@@ -421,8 +489,8 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
                       {filteredDispositivosVinculados.length > 0 ? (
                         <div className="p-2 space-y-1">
                           {filteredDispositivosVinculados.map(dispositivo => (
-                            <div 
-                              key={dispositivo.id_dispositivo} 
+                            <div
+                              key={dispositivo.id_dispositivo}
                               className="flex items-center justify-between p-2 bg-white dark:bg-gray-600 rounded border hover:bg-gray-100 dark:hover:bg-gray-500"
                             >
                               <div className="flex-1">
@@ -474,8 +542,8 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
                       ) : filteredDispositivosDisponibles.length > 0 ? (
                         <div className="p-2 space-y-1">
                           {filteredDispositivosDisponibles.map(dispositivo => (
-                            <div 
-                              key={dispositivo.id_dispositivo} 
+                            <div
+                              key={dispositivo.id_dispositivo}
                               className="flex items-center justify-between p-2 bg-white dark:bg-gray-600 rounded border hover:bg-gray-100 dark:hover:bg-gray-500"
                             >
                               <div className="flex-1">
@@ -506,8 +574,8 @@ export default function EditCamadaModal({ isOpen, camada, onClose, onCamadaUpdat
                         </div>
                       ) : (
                         <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-                          {dispositivosDisponibles.length === 0 
-                            ? "No hay dispositivos disponibles en esta granja" 
+                          {dispositivosDisponibles.length === 0
+                            ? "No hay dispositivos disponibles en esta granja"
                             : "No se encontraron dispositivos que coincidan con la búsqueda"
                           }
                         </div>

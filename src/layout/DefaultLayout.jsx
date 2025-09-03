@@ -42,10 +42,21 @@ export default function DefaultLayout() {
     return (
         <div className={`flex flex-col h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
             <Header toggleAside={toggleAside} onLogout={onLogout} user={user} />
-            <div className="flex flex-1 overflow-hidden">
-                {isAsideOpen && <Aside />}
-                <main className="flex-1 p-6 overflow-auto">
-                    <Outlet />
+            
+            {/* ✅ MODIFICADO: Asegurar que el contenedor ocupe toda la altura disponible */}
+            <div className="flex flex-1 min-h-0 overflow-hidden">
+                {/* ✅ MODIFICADO: Agregar flex-shrink-0 para evitar que el aside se comprima */}
+                {isAsideOpen && (
+                    <div className="flex-shrink-0">
+                        <Aside />
+                    </div>
+                )}
+                
+                {/* ✅ MODIFICADO: Asegurar scroll independiente del main */}
+                <main className="flex-1 overflow-auto">
+                    <div className="p-6">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
         </div>

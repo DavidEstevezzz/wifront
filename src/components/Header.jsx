@@ -4,12 +4,12 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 
 export default function Header({ toggleAside, onLogout, user }) {
   const { darkMode, toggleDarkMode } = useDarkMode();
-  
+
   return (
     <header className={`px-6 py-3 shadow-md ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
       <div className="flex justify-between items-center">
         <div className="flex items-center">
-          <button 
+          <button
             className="mr-4 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
             onClick={toggleAside}
           >
@@ -17,11 +17,17 @@ export default function Header({ toggleAside, onLogout, user }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link to="/dashboard" className="text-xl font-bold">WiControl</Link>
+          <Link to="/dashboard" className="flex items-center">
+            <img
+              src="/logo.png"
+              alt="WiControl"
+              className="h-10 w-auto hover:opacity-80 transition-opacity"
+            />
+          </Link>
         </div>
-        
+
         <div className="flex items-center">
-          <button 
+          <button
             onClick={toggleDarkMode}
             className="mr-4 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
           >
@@ -35,7 +41,7 @@ export default function Header({ toggleAside, onLogout, user }) {
               </svg>
             )}
           </button>
-          
+
           {user && (
             <div className="relative ml-3">
               <div className="flex items-center">
