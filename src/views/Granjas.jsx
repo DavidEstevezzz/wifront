@@ -113,8 +113,8 @@ export default function Granjas() {
     const term = searchTerm.toLowerCase();
     return sortedGranjas.filter(g =>
       (g.nombre && g.nombre.toLowerCase().includes(term)) ||
-      (g.codigo && g.codigo.toLowerCase().includes(term)) ||
-      (g.numero_rega && g.numero_rega.toLowerCase().includes(term))
+      (g.numero_rega && g.numero_rega.toLowerCase().includes(term)) ||
+      (g.codigo && g.codigo.toLowerCase().includes(term))  // Mantener codigo también en búsqueda
     );
   }, [sortedGranjas, searchTerm]);
 
@@ -183,10 +183,10 @@ export default function Granjas() {
                   {getSortIcon('nombre')}
                 </div>
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('codigo')}>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer" onClick={() => handleSort('numero_rega')}>
                 <div className="flex items-center">
-                  <span>Código</span>
-                  {getSortIcon('codigo')}
+                  <span>Número REGA</span>
+                  {getSortIcon('numero_rega')}
                 </div>
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Empresa</th>
@@ -203,7 +203,9 @@ export default function Granjas() {
               filteredGranjas.map(granja => (
                 <tr key={granja.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">{granja.nombre}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{granja.codigo}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 font-mono">
+                    {granja.numero_rega || 'N/A'}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">{empresasMap[granja.empresa_id] || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{usuariosMap[granja.usuario_contacto] || '-'}</td>
                   {isAdmin && (

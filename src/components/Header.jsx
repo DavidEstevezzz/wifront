@@ -6,7 +6,7 @@ export default function Header({ toggleAside, onLogout, user }) {
   const { darkMode, toggleDarkMode } = useDarkMode();
 
   return (
-    <header className={`px-6 py-3 shadow-md ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
+    <header className={`px-6 py-3 shadow-md ${darkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}>
       <div className="flex justify-between items-center">
         <div className="flex items-center">
           <button
@@ -21,7 +21,7 @@ export default function Header({ toggleAside, onLogout, user }) {
             <img
               src="/logo.png"
               alt="WiControl"
-              className="h-10 w-auto hover:opacity-80 transition-opacity"
+              className="h-12 w-auto hover:opacity-80 transition-opacity"
             />
           </Link>
         </div>

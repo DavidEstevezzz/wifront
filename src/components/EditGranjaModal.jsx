@@ -65,7 +65,24 @@ export default function EditGranjaModal({ isOpen, onClose, onGranjaUpdated, gran
       setResponsableSearch('');
       setError('');
       EmpresaApiService.getEmpresas().then(res => setEmpresas(Array.isArray(res) ? res : res.data || [])).catch(() => setEmpresas([]));
-      UsuarioApiService.getUsuarios().then(res => setUsuarios(res.data || [])).catch(() => setUsuarios([]));
+      const cargarTodosUsuarios = async () => {
+        try {
+          let todosUsuarios = [];
+          let page = 1;
+          let response;
+
+          do {
+            response = await UsuarioApiService.getUsuarios(page);
+            todosUsuarios = [...todosUsuarios, ...response.data];
+            page++;
+          } while (page <= response.last_page);
+
+          setUsuarios(todosUsuarios.filter(u => u.alta === 1));
+        } catch (error) {
+          setUsuarios([]);
+        }
+      };
+      cargarTodosUsuarios();
     }
   }, [isOpen, granja]);
 
@@ -86,39 +103,39 @@ export default function EditGranjaModal({ isOpen, onClose, onGranjaUpdated, gran
   };
 
   const handleSubmit = async e => {
-  e.preventDefault();
-  setLoading(true);
-  setError('');
-  
-  try {
-    const dataToSend = {
-      ...formData,
-      codigo_postal: parseInt(formData.codigo_postal, 10),
-      numero_naves: parseInt(formData.numero_naves, 10) || 1,
-      empresa_id: parseInt(formData.empresa_id, 10),
-      
-      // Convertir a enteros o null
-      usuario_contacto: formData.usuario_contacto ? parseInt(formData.usuario_contacto, 10) : null,
-      ganadero: formData.ganadero ? parseInt(formData.ganadero, 10) : null,
-      responsable: formData.responsable ? parseInt(formData.responsable, 10) : null, // ✅ MANTENER
-      
-      // Campos obligatorios
-      fecha_hora_alta: formData.fecha_hora_alta || new Date().toISOString().slice(0, 19).replace('T', ' '),
-      alta: formData.alta !== undefined ? formData.alta : true
-    };
-    
-    console.log('Datos a enviar:', dataToSend);
-    
-    await GranjaApiService.updateGranja(granja.id, dataToSend);
-    onGranjaUpdated();
-    onClose();
-  } catch (err) {
-    console.error('Error al actualizar granja:', err);
-    setError(err.response?.data?.message || 'Error al actualizar granja');
-  } finally {
-    setLoading(false);
-  }
-};
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const dataToSend = {
+        ...formData,
+        codigo_postal: parseInt(formData.codigo_postal, 10),
+        numero_naves: parseInt(formData.numero_naves, 10) || 1,
+        empresa_id: parseInt(formData.empresa_id, 10),
+
+        // Convertir a enteros o null
+        usuario_contacto: formData.usuario_contacto ? parseInt(formData.usuario_contacto, 10) : null,
+        ganadero: formData.ganadero ? parseInt(formData.ganadero, 10) : null,
+        responsable: formData.responsable ? parseInt(formData.responsable, 10) : null, // ✅ MANTENER
+
+        // Campos obligatorios
+        fecha_hora_alta: formData.fecha_hora_alta || new Date().toISOString().slice(0, 19).replace('T', ' '),
+        alta: formData.alta !== undefined ? formData.alta : true
+      };
+
+      console.log('Datos a enviar:', dataToSend);
+
+      await GranjaApiService.updateGranja(granja.id, dataToSend);
+      onGranjaUpdated();
+      onClose();
+    } catch (err) {
+      console.error('Error al actualizar granja:', err);
+      setError(err.response?.data?.message || 'Error al actualizar granja');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">

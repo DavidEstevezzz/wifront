@@ -2838,239 +2838,238 @@ export default function PesadasCamadaView({
     };
 
     const generateExcelPesadasIndividuales = async () => {
-    const filteredPesadas = getFilteredDailyPesadas();
+        const filteredPesadas = getFilteredDailyPesadas();
 
-    if (!filteredPesadas || filteredPesadas.length === 0) {
-        setError('No hay pesadas disponibles para exportar');
-        return;
-    }
+        if (!filteredPesadas || filteredPesadas.length === 0) {
+            setError('No hay pesadas disponibles para exportar');
+            return;
+        }
 
-    try {
-        const ExcelJS = await import('exceljs');
-        const workbook = new ExcelJS.Workbook();
+        try {
+            const ExcelJS = await import('exceljs');
+            const workbook = new ExcelJS.Workbook();
 
-        // Configurar propiedades del documento
-        workbook.creator = 'Sistema de Gestión Avícola';
-        workbook.created = new Date();
+            // Configurar propiedades del documento
+            workbook.creator = 'Sistema de Gestión Avícola';
+            workbook.created = new Date();
 
-        // Crear hoja de cálculo
-        const worksheet = workbook.addWorksheet('Listado de Pesadas');
+            // Crear hoja de cálculo
+            const worksheet = workbook.addWorksheet('Listado de Pesadas');
 
-        // Colores del tema
-        const colors = {
-            primary: '3B82F6',
-            success: '10B981',
-            danger: 'EF4444',
-            warning: 'F59E0B',
-            light: 'F8FAFC',
-            dark: '1F2937'
-        };
-
-        // ENCABEZADO DEL DOCUMENTO
-        const titleRow = worksheet.addRow(['LISTADO DETALLADO DE PESADAS']);
-        titleRow.getCell(1).font = { size: 16, bold: true, color: { argb: colors.dark } };
-        titleRow.getCell(1).alignment = { horizontal: 'center' };
-        worksheet.mergeCells('A1:F1'); // ✅ AMPLIADO: Cambié de E1 a F1 para nueva columna
-        titleRow.height = 30;
-
-        // ✅ NUEVO: Obtener información de la granja
-        const granjaSeleccionada = granjas.find(g => g.numero_rega === selectedGranja);
-        const nombreGranja = granjaSeleccionada ? granjaSeleccionada.nombre : selectedGranja;
-
-        // ✅ NUEVO: Calcular edad de la camada para la fecha consultada
-        const fechaConsultada = fecha ? new Date(fecha) : new Date();
-        const edadCamada = calculateCamadaAge ? calculateCamadaAge(fechaConsultada) : null;
-
-        // Información de la camada y granja (MEJORADA)
-        worksheet.addRow([]);
-        
-        // Primera fila de información
-        const infoRow1 = worksheet.addRow([
-            'Granja:', nombreGranja, 
-            '', 
-            'Camada:', camadaInfo?.nombre_camada || 'N/A',
-            ''
-        ]);
-        
-        // Segunda fila de información
-        const infoRow2 = worksheet.addRow([
-            'Fecha:', fecha || 'N/A', 
-            '', 
-            'Edad camada:', edadCamada ? `${edadCamada} días` : 'N/A',
-            ''
-        ]);
-        
-        // Tercera fila de información
-        const infoRow3 = worksheet.addRow([
-            'Dispositivo:', selectedDeviceForDaily === 'todos' ? 'Todos los dispositivos' : selectedDeviceForDaily, 
-            '', 
-            'Total pesadas:', filteredPesadas.length,
-            ''
-        ]);
-
-        // Aplicar formato a las filas de información
-        [infoRow1, infoRow2, infoRow3].forEach(row => {
-            row.getCell(1).font = { bold: true, color: { argb: colors.primary } };
-            row.getCell(4).font = { bold: true, color: { argb: colors.primary } };
-            row.height = 20;
-        });
-
-        worksheet.addRow([]);
-
-        // ENCABEZADOS DE LA TABLA - ✅ NUEVA COLUMNA: Agregada columna "Edad (días)"
-        const headerRow = worksheet.addRow(['Dispositivo', 'Peso (g)', 'Edad (días)', 'Hora', 'Estado', 'Observaciones']);
-        headerRow.eachCell((cell) => {
-            cell.font = { bold: true, color: { argb: 'FFFFFF' } };
-            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } };
-            cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
+            // Colores del tema
+            const colors = {
+                primary: '3B82F6',
+                success: '10B981',
+                danger: 'EF4444',
+                warning: 'F59E0B',
+                light: 'F8FAFC',
+                dark: '1F2937'
             };
-            cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        });
 
-        // DATOS DE LAS PESADAS
-        filteredPesadas.forEach((pesada, index) => {
-            const fechaPesada = new Date(pesada.fecha);
-            const hora = fechaPesada.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
+            // ENCABEZADO DEL DOCUMENTO
+            const titleRow = worksheet.addRow(['LISTADO DETALLADO DE PESADAS']);
+            titleRow.getCell(1).font = { size: 16, bold: true, color: { argb: colors.dark } };
+            titleRow.getCell(1).alignment = { horizontal: 'center' };
+            worksheet.mergeCells('A1:F1'); // ✅ AMPLIADO: Cambié de E1 a F1 para nueva columna
+            titleRow.height = 30;
 
-            // ✅ NUEVO: Calcular edad específica para esta pesada
-            const edadPesada = calculateCamadaAge ? calculateCamadaAge(fechaPesada) : edadCamada;
+            // ✅ NUEVO: Obtener información de la granja
+            const granjaSeleccionada = granjas.find(g => g.numero_rega === selectedGranja);
+            const nombreGranja = granjaSeleccionada ? granjaSeleccionada.nombre : selectedGranja;
 
-            let estadoTexto = '';
-            let observaciones = '';
-            let colorEstado = colors.dark;
+            // ✅ NUEVO: Calcular edad de la camada para la fecha consultada
+            const fechaConsultada = fecha ? new Date(fecha) : new Date();
+            const edadCamada = calculateCamadaAge ? Math.floor(calculateCamadaAge(fechaConsultada) || 0) : null;
 
-            switch (pesada.estado) {
-                case 'aceptada':
-                    estadoTexto = 'Aceptada';
-                    colorEstado = colors.success;
-                    break;
-                case 'rechazada':
-                    estadoTexto = 'Rechazada';
-                    observaciones = 'Fuera del coeficiente de homogeneidad';
-                    colorEstado = colors.danger;
-                    break;
-                case 'descartado':
-                    estadoTexto = 'Descartada';
-                    observaciones = 'Fuera del rango de peso de referencia';
-                    colorEstado = colors.warning;
-                    break;
-                default:
-                    estadoTexto = pesada.estado || 'Desconocido';
-            }
+            // Información de la camada y granja (MEJORADA)
+            worksheet.addRow([]);
 
-            // ✅ NUEVA FILA: Incluye la edad de la pesada
-            const dataRow = worksheet.addRow([
-                pesada.id_dispositivo,
-                parseFloat(pesada.valor).toFixed(1),
-                edadPesada || 0, // Nueva columna de edad
-                hora,
-                estadoTexto,
-                observaciones
+            // Primera fila de información
+            const infoRow1 = worksheet.addRow([
+                'Granja:', nombreGranja,
+                '',
+                'Camada:', camadaInfo?.nombre_camada || 'N/A',
+                ''
             ]);
 
-            // Aplicar formato a la fila
-            dataRow.eachCell((cell, colNumber) => {
+            // Segunda fila de información
+            const infoRow2 = worksheet.addRow([
+                'Fecha:', fecha || 'N/A',
+                '',
+                'Edad camada:', edadCamada ? `${edadCamada} días` : 'N/A',
+                ''
+            ]);
+
+            // Tercera fila de información
+            const infoRow3 = worksheet.addRow([
+                'Dispositivo:', selectedDeviceForDaily === 'todos' ? 'Todos los dispositivos' : selectedDeviceForDaily,
+                '',
+                'Total pesadas:', filteredPesadas.length,
+                ''
+            ]);
+
+            // Aplicar formato a las filas de información
+            [infoRow1, infoRow2, infoRow3].forEach(row => {
+                row.getCell(1).font = { bold: true, color: { argb: colors.primary } };
+                row.getCell(4).font = { bold: true, color: { argb: colors.primary } };
+                row.height = 20;
+            });
+
+            worksheet.addRow([]);
+
+            // ENCABEZADOS DE LA TABLA - ✅ NUEVA COLUMNA: Agregada columna "Edad (días)"
+            const headerRow = worksheet.addRow(['Dispositivo', 'Peso (g)', 'Edad (días)', 'Hora', 'Estado', 'Observaciones']);
+            headerRow.eachCell((cell) => {
+                cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.primary } };
                 cell.border = {
                     top: { style: 'thin' },
                     left: { style: 'thin' },
                     bottom: { style: 'thin' },
                     right: { style: 'thin' }
                 };
-
-                if (index % 2 === 1) {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } };
-                }
-
-                // Centrar contenido (excepto observaciones)
-                if (colNumber !== 6) { // ✅ ACTUALIZADO: Cambió de 5 a 6 para nueva columna
-                    cell.alignment = { horizontal: 'center', vertical: 'middle' };
-                }
-
-                // Color del estado - ✅ ACTUALIZADO: Cambió de columna 4 a 5
-                if (colNumber === 5) {
-                    cell.font = { bold: true, color: { argb: colorEstado } };
-                }
-
-                // Formato del peso
-                if (colNumber === 2) {
-                    cell.numFmt = '#,##0.0 "g"';
-                }
-
-                // ✅ NUEVO: Formato de la edad (columna 3)
-                if (colNumber === 3) {
-                    cell.numFmt = '#,##0 "días"';
-                }
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
             });
-        });
 
-        // RESUMEN AL FINAL
-        worksheet.addRow([]);
-        const resumenRow = worksheet.addRow(['RESUMEN ESTADÍSTICO']);
-        resumenRow.getCell(1).font = { size: 14, bold: true, color: { argb: colors.dark } };
-        worksheet.mergeCells(`A${resumenRow.number}:F${resumenRow.number}`); // ✅ ACTUALIZADO: Cambió de E a F
-        resumenRow.getCell(1).alignment = { horizontal: 'center' };
+            // DATOS DE LAS PESADAS
+            filteredPesadas.forEach((pesada, index) => {
+                const fechaPesada = new Date(pesada.fecha);
+                const hora = fechaPesada.toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
 
-        const stats = getFilteredDailyStats();
-        const aceptadas = filteredPesadas.filter(p => p.estado === 'aceptada').length;
-        const rechazadas = filteredPesadas.filter(p => p.estado === 'rechazada').length;
-        const descartadas = filteredPesadas.filter(p => p.estado === 'descartado').length;
+                // ✅ NUEVO: Calcular edad específica para esta pesada
+                const edadPesada = calculateCamadaAge ? Math.floor(calculateCamadaAge(fechaPesada) || 0) : Math.floor(edadCamada || 0);
+                let estadoTexto = '';
+                let observaciones = '';
+                let colorEstado = colors.dark;
 
-        // ✅ NUEVO: Resumen con información de granja y edad
-        worksheet.addRow(['Granja:', nombreGranja, '', 'Total pesadas:', filteredPesadas.length, '']);
-        worksheet.addRow(['Edad promedio:', edadCamada ? `${edadCamada} días` : 'N/A', '', 'Peso medio aceptadas:', `${stats.peso_medio_aceptadas.toFixed(1)} g`, '']);
-        worksheet.addRow(['Aceptadas:', aceptadas, '', 'Peso medio global:', `${stats.peso_medio_global.toFixed(1)} g`, '']);
-        worksheet.addRow(['Rechazadas:', rechazadas, '', 'Coef. variación:', `${stats.coef_variacion ? stats.coef_variacion.toFixed(1) : '0.0'}%`, '']);
-        worksheet.addRow(['Descartadas:', descartadas, '', '', '', '']);
+                switch (pesada.estado) {
+                    case 'aceptada':
+                        estadoTexto = 'Aceptada';
+                        colorEstado = colors.success;
+                        break;
+                    case 'rechazada':
+                        estadoTexto = 'Rechazada';
+                        observaciones = 'Fuera del coeficiente de homogeneidad';
+                        colorEstado = colors.danger;
+                        break;
+                    case 'descartado':
+                        estadoTexto = 'Descartada';
+                        observaciones = 'Fuera del rango de peso de referencia';
+                        colorEstado = colors.warning;
+                        break;
+                    default:
+                        estadoTexto = pesada.estado || 'Desconocido';
+                }
 
-        // ✅ ACTUALIZADO: Ajustar anchos de columna para nueva columna
-        worksheet.getColumn(1).width = 15; // Dispositivo
-        worksheet.getColumn(2).width = 12; // Peso
-        worksheet.getColumn(3).width = 12; // Edad (nueva columna)
-        worksheet.getColumn(4).width = 10; // Hora
-        worksheet.getColumn(5).width = 12; // Estado
-        worksheet.getColumn(6).width = 35; // Observaciones
+                // ✅ NUEVA FILA: Incluye la edad de la pesada
+                const dataRow = worksheet.addRow([
+                    pesada.id_dispositivo,
+                    parseFloat(pesada.valor).toFixed(1),
+                    edadPesada || 0, // Nueva columna de edad
+                    hora,
+                    estadoTexto,
+                    observaciones
+                ]);
 
-        // ✅ MEJORADO: Nombre del archivo con granja y edad
-        const nombreArchivoGranja = granjaSeleccionada ? 
-            granjaSeleccionada.nombre.replace(/\s+/g, '_') : 
-            'Granja';
-        
-        const fileName = `Pesadas_${nombreArchivoGranja}_${camadaInfo?.nombre_camada?.replace(/\s+/g, '_') || 'Camada'}_${edadCamada ? `${edadCamada}dias_` : ''}${fecha}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                // Aplicar formato a la fila
+                dataRow.eachCell((cell, colNumber) => {
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
 
-        // Generar archivo y descargar
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const url = URL.createObjectURL(blob);
+                    if (index % 2 === 1) {
+                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.light } };
+                    }
 
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = fileName;
-        link.click();
+                    // Centrar contenido (excepto observaciones)
+                    if (colNumber !== 6) { // ✅ ACTUALIZADO: Cambió de 5 a 6 para nueva columna
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    }
 
-        URL.revokeObjectURL(url);
+                    // Color del estado - ✅ ACTUALIZADO: Cambió de columna 4 a 5
+                    if (colNumber === 5) {
+                        cell.font = { bold: true, color: { argb: colorEstado } };
+                    }
 
-        // Mostrar mensaje de éxito
-        const prevError = error;
-        setError('Listado de pesadas exportado con éxito a Excel');
-        setTimeout(() => {
-            if (error === 'Listado de pesadas exportado con éxito a Excel') {
-                setError(prevError);
-            }
-        }, 3000);
+                    // Formato del peso
+                    if (colNumber === 2) {
+                        cell.numFmt = '#,##0.0 "g"';
+                    }
 
-    } catch (err) {
-        console.error('Error al generar Excel:', err);
-        setError('Error al generar el archivo Excel: ' + err.message);
-    }
-};
+                    // ✅ NUEVO: Formato de la edad (columna 3)
+                    if (colNumber === 3) {
+                        cell.numFmt = '#,##0 "días"';
+                    }
+                });
+            });
+
+            // RESUMEN AL FINAL
+            worksheet.addRow([]);
+            const resumenRow = worksheet.addRow(['RESUMEN ESTADÍSTICO']);
+            resumenRow.getCell(1).font = { size: 14, bold: true, color: { argb: colors.dark } };
+            worksheet.mergeCells(`A${resumenRow.number}:F${resumenRow.number}`); // ✅ ACTUALIZADO: Cambió de E a F
+            resumenRow.getCell(1).alignment = { horizontal: 'center' };
+
+            const stats = getFilteredDailyStats();
+            const aceptadas = filteredPesadas.filter(p => p.estado === 'aceptada').length;
+            const rechazadas = filteredPesadas.filter(p => p.estado === 'rechazada').length;
+            const descartadas = filteredPesadas.filter(p => p.estado === 'descartado').length;
+
+            // ✅ NUEVO: Resumen con información de granja y edad
+            worksheet.addRow(['Granja:', nombreGranja, '', 'Total pesadas:', filteredPesadas.length, '']);
+            worksheet.addRow(['Edad promedio:', edadCamada ? `${edadCamada} días` : 'N/A', '', 'Peso medio aceptadas:', `${stats.peso_medio_aceptadas.toFixed(1)} g`, '']);
+            worksheet.addRow(['Aceptadas:', aceptadas, '', 'Peso medio global:', `${stats.peso_medio_global.toFixed(1)} g`, '']);
+            worksheet.addRow(['Rechazadas:', rechazadas, '', 'Coef. variación:', `${stats.coef_variacion ? stats.coef_variacion.toFixed(1) : '0.0'}%`, '']);
+            worksheet.addRow(['Descartadas:', descartadas, '', '', '', '']);
+
+            // ✅ ACTUALIZADO: Ajustar anchos de columna para nueva columna
+            worksheet.getColumn(1).width = 15; // Dispositivo
+            worksheet.getColumn(2).width = 12; // Peso
+            worksheet.getColumn(3).width = 12; // Edad (nueva columna)
+            worksheet.getColumn(4).width = 10; // Hora
+            worksheet.getColumn(5).width = 12; // Estado
+            worksheet.getColumn(6).width = 35; // Observaciones
+
+            // ✅ MEJORADO: Nombre del archivo con granja y edad
+            const nombreArchivoGranja = granjaSeleccionada ?
+                granjaSeleccionada.nombre.replace(/\s+/g, '_') :
+                'Granja';
+
+            const fileName = `Pesadas_${nombreArchivoGranja}_${camadaInfo?.nombre_camada?.replace(/\s+/g, '_') || 'Camada'}_${edadCamada ? `${edadCamada}dias_` : ''}${fecha}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+            // Generar archivo y descargar
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            link.click();
+
+            URL.revokeObjectURL(url);
+
+            // Mostrar mensaje de éxito
+            const prevError = error;
+            setError('Listado de pesadas exportado con éxito a Excel');
+            setTimeout(() => {
+                if (error === 'Listado de pesadas exportado con éxito a Excel') {
+                    setError(prevError);
+                }
+            }, 3000);
+
+        } catch (err) {
+            console.error('Error al generar Excel:', err);
+            setError('Error al generar el archivo Excel: ' + err.message);
+        }
+    };
 
 
     const getStackedBarChartLayout = () => ({
