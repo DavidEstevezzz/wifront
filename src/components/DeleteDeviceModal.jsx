@@ -19,9 +19,10 @@ export default function DeleteDeviceModal({ isOpen, onClose, onDeviceDeleted, de
     setError('');
 
     try {
-      await DispositivoApiService.delete(device.id);
+      // CORRECCIÓN: Usar id_dispositivo en lugar de id
+      await DispositivoApiService.delete(device.id_dispositivo);
       setLoading(false);
-      onDeviceDeleted(device.id);
+      onDeviceDeleted(device.id_dispositivo);
       onClose();
     } catch (err) {
       console.error('Error deleting device:', err);
@@ -72,14 +73,14 @@ export default function DeleteDeviceModal({ isOpen, onClose, onDeviceDeleted, de
           </div>
           
           <p className="mb-4 text-gray-700 dark:text-gray-300">
-            ¿Está seguro de que desea eliminar el dispositivo <span className="font-bold">{device.numero_serie || `#${device.id}`}</span>?
+            ¿Está seguro de que desea eliminar el dispositivo <span className="font-bold">{device.numero_serie || `#${device.id_dispositivo}`}</span>?
           </p>
           
           {/* Información del dispositivo */}
           <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-md border border-gray-200 dark:border-gray-700 mb-6">
             <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">Información del Dispositivo</h3>
             <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <li><span className="font-medium">ID:</span> {device.id}</li>
+              <li><span className="font-medium">ID:</span> {device.id_dispositivo}</li>
               <li><span className="font-medium">Número de Serie:</span> {device.numero_serie || 'N/A'}</li>
               <li><span className="font-medium">IP:</span> {device.ip_address || 'N/A'}</li>
               <li><span className="font-medium">Estado:</span> {device.alta ? 'Activo' : 'Inactivo'}</li>

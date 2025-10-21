@@ -48,7 +48,7 @@ export default function Camadas() {
     try {
       setLoading(true);
       setError('');
-      
+
       // Cargar camadas y granjas en paralelo
       const [camadasData, granjasResponse] = await Promise.all([
         CamadaApiService.getCamadas(),
@@ -82,14 +82,14 @@ export default function Camadas() {
 
   const getSortIcon = field => {
     if (sortField !== field) return <FontAwesomeIcon icon={faSort} className="ml-1 text-gray-400" />;
-    return <FontAwesomeIcon 
-      icon={sortDirection === 'asc' ? faSortUp : faSortDown} 
-      className="ml-1 text-blue-500" 
+    return <FontAwesomeIcon
+      icon={sortDirection === 'asc' ? faSortUp : faSortDown}
+      className="ml-1 text-blue-500"
     />;
   };
 
   const filteredCamadas = camadas
-    .filter(camada => 
+    .filter(camada =>
       camada.nombre_camada?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       camada.codigo_granja?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       getGranjaName(camada.codigo_granja)?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -97,12 +97,12 @@ export default function Camadas() {
     .sort((a, b) => {
       let aVal = a[sortField] || '';
       let bVal = b[sortField] || '';
-      
+
       if (sortField === 'fecha_hora_inicio' || sortField === 'fecha_hora_final') {
         aVal = new Date(aVal || 0);
         bVal = new Date(bVal || 0);
       }
-      
+
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
@@ -187,7 +187,7 @@ export default function Camadas() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center">
                 <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
@@ -199,7 +199,7 @@ export default function Camadas() {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center">
                 <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
@@ -278,7 +278,7 @@ export default function Camadas() {
                       Granja {getSortIcon('codigo_granja')}
                     </div>
                   </th>
-                  
+
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                     onClick={() => handleSort('nombre_camada')}
@@ -287,11 +287,11 @@ export default function Camadas() {
                       Camada {getSortIcon('nombre_camada')}
                     </div>
                   </th>
-                  
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Estado
                   </th>
-                  
+
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                     onClick={() => handleSort('fecha_hora_inicio')}
@@ -300,7 +300,7 @@ export default function Camadas() {
                       Fecha Inicio {getSortIcon('fecha_hora_inicio')}
                     </div>
                   </th>
-                  
+
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                     onClick={() => handleSort('fecha_hora_final')}
@@ -309,7 +309,7 @@ export default function Camadas() {
                       Fecha Fin {getSortIcon('fecha_hora_final')}
                     </div>
                   </th>
-                  
+
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Acciones
                   </th>
@@ -317,8 +317,8 @@ export default function Camadas() {
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredCamadas.map((camada, index) => (
-                  <tr 
-                    key={camada.id_camada} 
+                  <tr
+                    key={camada.id_camada}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
                   >
                     {/* Granja */}
@@ -332,14 +332,14 @@ export default function Camadas() {
                         </div>
                       </div>
                     </td>
-                    
+
                     {/* Camada */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {camada.nombre_camada}
                       </div>
                     </td>
-                    
+
                     {/* Estado */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {camada.fecha_hora_final ? (
@@ -354,52 +354,64 @@ export default function Camadas() {
                         </span>
                       )}
                     </td>
-                    
+
                     {/* Fecha inicio */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                      {camada.fecha_hora_inicio ? 
+                      {camada.fecha_hora_inicio ?
                         new Date(camada.fecha_hora_inicio).toLocaleDateString('es-ES') : 'N/A'}
                     </td>
-                    
+
                     {/* Fecha fin */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                      {camada.fecha_hora_final ? 
+                      {camada.fecha_hora_final ?
                         new Date(camada.fecha_hora_final).toLocaleDateString('es-ES') : '-'}
                     </td>
-                    
+
                     {/* Acciones */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button 
-                          onClick={() => openEditModal(camada)} 
-                          className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors duration-200"
-                          title="Editar"
-                        >
-                          <FontAwesomeIcon icon={faEdit} className="w-4 h-4" />
-                        </button>
-                        
-                        <button 
-                          onClick={() => openDeleteModal(camada)} 
-                          className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors duration-200"
-                          title="Eliminar"
-                        >
-                          <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
-                        </button>
-                        
-                        {!camada.fecha_hora_final && (
-                          <button 
-                            onClick={() => openCloseModal(camada)} 
-                            className="p-2 text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900 rounded-lg transition-colors duration-200"
-                            title="Cerrar camada"
+                      <div className="flex items-center justify-end gap-1" style={{ minWidth: '120px' }}>
+                        {/* Botón Editar - Siempre en la primera posición */}
+                        <div className="w-8 flex justify-center">
+                          <button
+                            onClick={() => openEditModal(camada)}
+                            className="p-2 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors duration-200"
+                            title="Editar"
                           >
-                            <FontAwesomeIcon icon={faDoorClosed} className="w-4 h-4" />
+                            <FontAwesomeIcon icon={faEdit} className="w-4 h-4" />
                           </button>
-                        )}
+                        </div>
+
+                        {/* Botón Eliminar - Siempre en la segunda posición */}
+                        <div className="w-8 flex justify-center">
+                          <button
+                            onClick={() => openDeleteModal(camada)}
+                            className="p-2 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors duration-200"
+                            title="Eliminar"
+                          >
+                            <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Botón Cerrar - Siempre en la tercera posición, pero invisible si no aplica */}
+                        <div className="w-8 flex justify-center">
+                          {!camada.fecha_hora_final ? (
+                            <button
+                              onClick={() => openCloseModal(camada)}
+                              className="p-2 text-green-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900 rounded-lg transition-colors duration-200"
+                              title="Cerrar camada"
+                            >
+                              <FontAwesomeIcon icon={faDoorClosed} className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            /* Espacio reservado invisible para mantener alineación */
+                            <div className="p-2 w-8 h-8"></div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
                 ))}
-                
+
                 {!filteredCamadas.length && (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">

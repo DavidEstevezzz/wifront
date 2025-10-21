@@ -427,6 +427,16 @@ export default function ActividadAvesView({
         }, 3000);
     }, [selectedDispositivo, camadaInfo, error]);
 
+  const formatToFixed = (value, decimals = 1) => {
+        const num = Number(value);
+        return Number.isFinite(num) ? num.toFixed(decimals) : (0).toFixed(decimals);
+    };
+
+    const formatHoursFromSeconds = (seconds, decimals = 2) => {
+        const totalSeconds = Number(seconds);
+        const hours = Number.isFinite(totalSeconds) ? totalSeconds / 3600 : 0;
+        return formatToFixed(hours, decimals);
+    };
 
     // 9. Definición del tema (claro/oscuro)
     const theme = isDarkMode ?
@@ -733,7 +743,8 @@ export default function ActividadAvesView({
                 color: theme.actividad
             },
             hovertemplate: 'Hora: %{x}<br>Actividad: %{y:.1f} minutos<br>(%{text}%)<extra></extra>',
-            text: datosOrdenados.map(d => d.porcentaje.toFixed(1))
+                        text: datosOrdenados.map(d => formatToFixed(d?.porcentaje, 1))
+
         };
 
         return [traceActividadPorHora];
@@ -1015,7 +1026,7 @@ export default function ActividadAvesView({
                         {resumen_actividad.tiempo_formateado}
                     </div>
                     <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        <div>Total: {(resumen_actividad.tiempo_total_segundos / 3600).toFixed(2)} horas</div>
+                        <div>Total: {formatHoursFromSeconds(resumen_actividad.tiempo_total_segundos)} horas</div>
                     </div>
                 </div>
 
@@ -1024,11 +1035,11 @@ export default function ActividadAvesView({
                         Porcentaje de Actividad
                     </h3>
                     <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                        {resumen_actividad.porcentaje_actividad.toFixed(1)}%
+                        <div>Total: {formatHoursFromSeconds(resumen_actividad.tiempo_total_segundos)} horas</div>
                     </div>
                     <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         <div>
-                            Inactividad: {resumen_actividad.porcentaje_inactividad.toFixed(1)}%
+                            Inactividad: {formatToFixed(resumen_actividad.porcentaje_inactividad, 1)}%
                         </div>
                     </div>
                 </div>
@@ -1056,7 +1067,7 @@ export default function ActividadAvesView({
                     </div>
                     <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         <div>
-                            {(actividadDiaria.periodo.duracion_total_segundos / 3600).toFixed(2)} horas totales
+                            {formatHoursFromSeconds(actividadDiaria.periodo.duracion_total_segundos)} horas totales
                         </div>
                     </div>
                 </div>
@@ -1081,6 +1092,10 @@ export default function ActividadAvesView({
             marker: {
                 colors: [theme.actividad, theme.inactividad]
             },
+            text: [
+                `${formatToFixed(resumen_actividad.porcentaje_actividad, 1)}%`,
+                `${formatToFixed(resumen_actividad.porcentaje_inactividad, 1)}%`
+            ],
             textinfo: 'label+percent',
             textposition: 'outside',
             automargin: true
@@ -1100,7 +1115,7 @@ export default function ActividadAvesView({
                     color: theme.actividad
                 },
                 showarrow: false,
-                text: `${resumen_actividad.porcentaje_actividad.toFixed(1)}%`,
+                text: `${formatToFixed(resumen_actividad.porcentaje_actividad, 1)}%`,
                 x: 0.5,
                 y: 0.5
             }]
@@ -1135,7 +1150,7 @@ export default function ActividadAvesView({
                 color: theme.actividad
             },
             hovertemplate: 'Hora: %{x}<br>Actividad: %{y:.1f} minutos<br>(%{text}%)<extra></extra>',
-            text: horasOrdenadas.map(h => h.porcentaje.toFixed(1))
+            text: horasOrdenadas.map(h => formatToFixed(h.porcentaje, 1))
         }];
 
         const layout = {
@@ -1254,14 +1269,14 @@ export default function ActividadAvesView({
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Tiempo Total de Actividad</h3>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">{resumen_actividad.tiempo_formateado}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {(resumen_actividad.tiempo_total_segundos / 3600).toFixed(2)} horas
+                        {formatHoursFromSeconds(resumen_actividad.tiempo_total_segundos)} horas
                     </p>
                 </div>
                 <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
                     <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Porcentaje de Actividad</h3>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{resumen_actividad.porcentaje_actividad.toFixed(1)}%</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatToFixed(resumen_actividad.porcentaje_actividad, 1)}%</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Inactividad: {resumen_actividad.porcentaje_inactividad.toFixed(1)}%
+                        Inactividad: {formatToFixed(resumen_actividad.porcentaje_inactividad, 1)}%
                     </p>
                 </div>
                 <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
@@ -1331,10 +1346,10 @@ export default function ActividadAvesView({
                                     {dia.tiempo_actividad_formateado}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                    {dia.porcentaje_actividad.toFixed(1)}%
+                                    {formatToFixed(dia.porcentaje_actividad, 1)}%
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                    {dia.porcentaje_inactividad.toFixed(1)}%
+                                    {formatToFixed(dia.porcentaje_inactividad, 1)}%
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {dia.lecturas_aceptadas} / {dia.lecturas_totales}

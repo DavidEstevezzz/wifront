@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import UsuarioApiService from '../services/UsuarioApiService';
 import { useDarkMode } from '../contexts/DarkModeContext';
@@ -16,8 +17,8 @@ import {
   faSortUp,
   faSortDown,
   faUser,
-  faLock,
-  faEnvelope
+  faBan,
+  faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 
 // Componentes de modales
@@ -88,10 +89,8 @@ export default function Users() {
   // Función para cambiar ordenación
   const handleSort = (field) => {
     if (sortField === field) {
-      // Si ya estamos ordenando por este campo, cambiamos la dirección
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
-      // Si es un nuevo campo, ordenamos ascendente por defecto
       setSortField(field);
       setSortDirection('asc');
     }
@@ -110,7 +109,6 @@ export default function Users() {
     if (!usuarios.length) return [];
 
     return [...usuarios].sort((a, b) => {
-
       if (sortField === 'empresas') {
         const aEmpresas = a.empresas && a.empresas.length ? a.empresas.map(e => e.nombre_empresa || e.nombre).join(', ') : '';
         const bEmpresas = b.empresas && b.empresas.length ? b.empresas.map(e => e.nombre_empresa || e.nombre).join(', ') : '';
@@ -127,7 +125,7 @@ export default function Users() {
       if (aVal === null || aVal === undefined) aVal = '';
       if (bVal === null || bVal === undefined) bVal = '';
 
-      // Convertir a string para comparación (por defecto)
+      // Convertir a string para comparación
       aVal = String(aVal).toLowerCase();
       bVal = String(bVal).toLowerCase();
 
@@ -158,12 +156,12 @@ export default function Users() {
   }, [sortedUsuarios, searchTerm]);
 
   // Función para manejar la activación/desactivación de usuarios
-  const handleToggleStatus = async (user) => {
+  const handleToggleStatus = async (usuario) => {
     try {
-      if (user.alta) {
-        await UsuarioApiService.deleteUsuario(user.id);
+      if (usuario.alta) {
+        await UsuarioApiService.deleteUsuario(usuario.id);
       } else {
-        await UsuarioApiService.activateUsuario(user.id);
+        await UsuarioApiService.activateUsuario(usuario.id);
       }
       refreshList();
     } catch (error) {
@@ -174,18 +172,18 @@ export default function Users() {
   // Funciones para manejar modales
   const openCreateModal = () => setCreateModalOpen(true);
 
-  const openEditModal = (user) => {
-    setSelectedUser(user);
+  const openEditModal = (usuario) => {
+    setSelectedUser(usuario);
     setEditModalOpen(true);
   };
 
-  const openDeleteModal = (user) => {
-    setSelectedUser(user);
+  const openDeleteModal = (usuario) => {
+    setSelectedUser(usuario);
     setDeleteModalOpen(true);
   };
 
-  const openViewModal = (user) => {
-    setSelectedUser(user);
+  const openViewModal = (usuario) => {
+    setSelectedUser(usuario);
     setViewModalOpen(true);
   };
 
@@ -220,7 +218,7 @@ export default function Users() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 w-full">
       <h1 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
         Gestión de Usuarios
       </h1>
@@ -286,204 +284,196 @@ export default function Users() {
       </div>
 
       {/* Tabla de usuarios */}
-      <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <table className="table-auto w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-100 dark:bg-gray-900">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSort('alias_usuario')}
-              >
-                <div className="flex items-center">
-                  <span>Usuario</span>
-                  {getSortIcon('alias_usuario')}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSort('nombre')}
-              >
-                <div className="flex items-center">
-                  <span>Nombre</span>
-                  {getSortIcon('nombre')}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                onClick={() => handleSort('email')}
-              >
-                <div className="flex items-center">
-                  <span>Correo</span>
-                  {getSortIcon('email')}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hidden md:table-cell"
-                onClick={() => handleSort('usuario_tipo')}
-              >
-                <div className="flex items-center">
-                  <span>Tipo</span>
-                  {getSortIcon('usuario_tipo')}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hidden lg:table-cell"
-                onClick={() => handleSort('empresas')}
-              >
-                <div className="flex items-center">
-                  <span>Empresas</span>
-                  {getSortIcon('empresas')}
-                </div>
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hidden md:table-cell"
-                onClick={() => handleSort('alta')}
-              >
-                <div className="flex items-center">
-                  <span>Estado</span>
-                  {getSortIcon('alta')}
-                </div>
-              </th>
-              <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {loading ? (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-100 dark:bg-gray-900">
               <tr>
-                <td colSpan="7" className="px-6 py-4 text-center">
-                  <div className="flex justify-center items-center space-x-2">
-                    <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span className="text-gray-700 dark:text-gray-300">Cargando usuarios...</span>
+                <th
+                  scope="col"
+                  className="w-[20%] px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('alias_usuario')}
+                >
+                  <div className="flex items-center">
+                    <span>Usuario</span>
+                    {getSortIcon('alias_usuario')}
                   </div>
-                </td>
+                </th>
+                <th
+                  scope="col"
+                  className="w-[22%] px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('nombre')}
+                >
+                  <div className="flex items-center">
+                    <span>Nombre</span>
+                    {getSortIcon('nombre')}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="w-[20%] px-3 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort('email')}
+                >
+                  <div className="flex items-center">
+                    <span>Correo</span>
+                    {getSortIcon('email')}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="w-[12%] px-3 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hidden md:table-cell"
+                  onClick={() => handleSort('usuario_tipo')}
+                >
+                  <div className="flex items-center">
+                    <span>Tipo</span>
+                    {getSortIcon('usuario_tipo')}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="w-[14%] px-3 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hidden lg:table-cell"
+                  onClick={() => handleSort('empresas')}
+                >
+                  <div className="flex items-center">
+                    <span>Empresas</span>
+                    {getSortIcon('empresas')}
+                  </div>
+                </th>
+                <th scope="col" className="w-[12%] px-3 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Acciones
+                </th>
               </tr>
-            ) : (
-              filteredUsuarios.length === 0 ? (
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-4 text-center text-gray-700 dark:text-gray-300">
-                    {searchTerm
-                      ? 'No se encontraron usuarios con esos criterios de búsqueda.'
-                      : 'No hay usuarios disponibles.'}
+                  <td colSpan="6" className="px-3 py-4 text-center">
+                    <div className="flex justify-center items-center space-x-2">
+                      <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="text-gray-700 dark:text-gray-300">Cargando usuarios...</span>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                filteredUsuarios.map(usuario => (
-                  <tr
-                    key={usuario.id}
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${!usuario.alta ? 'bg-gray-100 dark:bg-gray-900 opacity-75' : ''}`}
-                  >
-                    <td className="px-6 py-4 ">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-200">
-                          {usuario.foto ? (
-                            <img src={usuario.foto} alt={usuario.nombre} className="h-10 w-10 rounded-full" />
-                          ) : (
-                            <FontAwesomeIcon icon={faUser} />
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {usuario.alias_usuario}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {usuario.dni || 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 ">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {usuario.nombre} {usuario.apellidos}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
-                        {usuario.localidad && `${usuario.localidad}, ${usuario.provincia}`}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 ">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {usuario.email}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {usuario.telefono}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4  hidden md:table-cell">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getUserTypeBadgeClass(usuario.usuario_tipo)}`}>
-                        {usuario.usuario_tipo.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-white hidden lg:table-cell">
-                      {usuario.empresas && usuario.empresas.length > 0
-                        ? usuario.empresas.map(emp => emp.nombre_empresa || emp.nombre).join(', ')
-                        : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4  hidden md:table-cell">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${usuario.alta
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }`}>
-                        {usuario.alta ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4  text-sm text-gray-900 dark:text-white text-center">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => openViewModal(usuario)}
-                          className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                          title="Ver detalles"
-                        >
-                          <FontAwesomeIcon icon={faEye} />
-                        </button>
-
-                        {isAdmin && (
-                          <>
-                            <button
-                              onClick={() => openEditModal(usuario)}
-                              className="p-1 text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
-                              title="Editar usuario"
-                            >
-                              <FontAwesomeIcon icon={faEdit} />
-                            </button>
-
-                            <button
-                              onClick={() => handleToggleStatus(usuario)}
-                              className={`p-1 ${usuario.alta
-                                ? 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
-                                : 'text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300'
-                                }`}
-                              title={usuario.alta ? 'Desactivar usuario' : 'Activar usuario'}
-                            >
-                              <FontAwesomeIcon icon={usuario.alta ? faTimes : faCheck} />
-                            </button>
-
-                            <button
-                              onClick={() => openDeleteModal(usuario)}
-                              className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 mr-2"
-                              title="Eliminar usuario"
-                            >
-                              <FontAwesomeIcon icon={faTrash} />
-                            </button>
-                          </>
-                        )}
-                      </div>
+                filteredUsuarios.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-3 py-4 text-center text-gray-700 dark:text-gray-300">
+                      {searchTerm
+                        ? 'No se encontraron usuarios con esos criterios de búsqueda.'
+                        : 'No hay usuarios disponibles.'}
                     </td>
                   </tr>
-                ))
-              )
-            )}
-          </tbody>
-        </table>
+                ) : (
+                  filteredUsuarios.map(usuario => (
+                    <tr
+                      key={usuario.id}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${!usuario.alta ? 'bg-gray-100 dark:bg-gray-900 opacity-75' : ''}`}
+                    >
+                      <td className="px-3 py-3">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-9 w-9 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-700 dark:text-gray-200">
+                            {usuario.foto ? (
+                              <img src={usuario.foto} alt={usuario.nombre} className="h-9 w-9 rounded-full" />
+                            ) : (
+                              <FontAwesomeIcon icon={faUser} className="text-sm" />
+                            )}
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {usuario.alias_usuario}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {usuario.dni || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {usuario.nombre} {usuario.apellidos}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
+                          {usuario.localidad && `${usuario.localidad}, ${usuario.provincia}`}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="text-sm text-gray-900 dark:text-white break-all">
+                          {usuario.email}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {usuario.telefono}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 hidden md:table-cell">
+                        <span className={`px-2 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getUserTypeBadgeClass(usuario.usuario_tipo)}`}>
+                          {usuario.usuario_tipo.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-gray-900 dark:text-white hidden lg:table-cell">
+                        {usuario.empresas && usuario.empresas.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {usuario.empresas.map((emp, idx) => (
+                              <div key={idx} className="truncate text-sm">
+                                {emp.nombre_empresa || emp.nombre}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm">N/A</div>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-gray-900 dark:text-white text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button
+                            onClick={() => openViewModal(usuario)}
+                            className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            title="Ver detalles"
+                          >
+                            <FontAwesomeIcon icon={faEye} />
+                          </button>
+
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => openEditModal(usuario)}
+                                className="p-1 text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                                title="Editar usuario"
+                              >
+                                <FontAwesomeIcon icon={faEdit} />
+                              </button>
+
+                              <button
+                                onClick={() => handleToggleStatus(usuario)}
+                                className={`p-1 ${usuario.alta
+                                  ? 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
+                                  : 'text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300'
+                                  }`}
+                                title={usuario.alta ? 'Desactivar usuario' : 'Activar usuario'}
+                              >
+                                <FontAwesomeIcon icon={usuario.alta ? faBan : faCheckCircle} />
+                              </button>
+
+                              <button
+                                onClick={() => openDeleteModal(usuario)}
+                                className="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                title="Eliminar usuario"
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Paginación */}
@@ -505,7 +495,6 @@ export default function Users() {
           {/* Números de página */}
           <div className="flex space-x-1">
             {Array.from({ length: Math.min(5, totalPages) }).map((_, index) => {
-              // Mostrar siempre las primeras páginas, la página actual y las últimas
               let pageNum;
               if (totalPages <= 5) {
                 pageNum = index + 1;

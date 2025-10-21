@@ -477,29 +477,48 @@ export default function PesadasCamadaView({
         let consultedAge = null;
         let pesoObjetivo = null;
 
+        const fallbackAge = resolveConsultedAge();
+        const normalizedFallbackAge = Number.isFinite(fallbackAge)
+            ? Math.floor(fallbackAge)
+            : null;
+
+
         // ✅ PRIORIDAD 1: Usar peso_referencia del backend si está disponible
         if (pesadasData && pesadasData.peso_referencia) {
+
+            const backendAge = pesadasData.peso_referencia.edad_dias;
+            const normalizedBackendAge = Number.isFinite(backendAge)
+                ? Math.floor(backendAge)
+                : null;
+
+            const isBackendAgeValid = normalizedBackendAge !== null && normalizedBackendAge >= 0;
+
             pesoObjetivo = pesadasData.peso_referencia.valor;
-            consultedAge = pesadasData.peso_referencia.edad_dias;
+            consultedAge = normalizedFallbackAge !== null
+                ? normalizedFallbackAge
+                : (isBackendAgeValid ? normalizedBackendAge : null);
 
             console.log('✅ Usando peso_referencia del backend:', {
                 peso: pesoObjetivo,
-                edad: consultedAge,
+                edad_backend: backendAge,
+                edad_utilizada: consultedAge,
+                recalculada: !isBackendAgeValid,
                 tabla: pesadasData.peso_referencia.tabla_usada,
                 sexaje: pesadasData.peso_referencia.sexaje
             });
+
+            if (!isBackendAgeValid) {
+                console.warn('⚠️ Edad de backend inválida, usando calculateCamadaAge()', {
+                    backendAge,
+                    fallbackAge: normalizedFallbackAge
+
+                });
+            }
         }
         // ✅ FALLBACK: Si no hay peso_referencia, usar el método anterior (para rango)
         else {
-            // Determinar qué fecha estamos consultando
-            if (pesadasData && fecha) {
-                consultedAge = calculateCamadaAge(new Date(fecha));
-            } else if (pesadasRangoData && pesadasRangoData.length > 0) {
-                const lastReading = pesadasRangoData[pesadasRangoData.length - 1];
-                consultedAge = calculateCamadaAge(new Date(lastReading.fecha));
-            } else {
-                consultedAge = calculateCamadaAge();
-            }
+            consultedAge = normalizedFallbackAge;
+
 
             // Obtener de referenceData (método anterior)
             if (referenceData && consultedAge !== null) {
@@ -536,7 +555,7 @@ export default function PesadasCamadaView({
         const uniformidad = calculateUniformityCoefficient(pesadasAceptadas, filteredStats.peso_medio_aceptadas);
 
         return {
-            edad: consultedAge,
+            edad: Number.isFinite(consultedAge) ? Math.floor(consultedAge) : consultedAge,
             pesoObjetivo: pesoObjetivo || null,
             uniformidad,
             nombreCamada: infoToUse.nombre_camada
@@ -803,16 +822,13 @@ export default function PesadasCamadaView({
                 porcentajeDescarte
             );
 
-            console.log('Respuesta completa del API:', response);
 
             // ✅ VERIFICACIÓN CRÍTICA: Extraer los datos correctamente
             if (response && response.datos && Array.isArray(response.datos)) {
                 setPesadasRangoData(response.datos);
-                console.log('✅ Datos extraídos correctamente:', response.datos);
             } else if (Array.isArray(response)) {
                 // Fallback por si el API devuelve directamente el array
                 setPesadasRangoData(response);
-                console.log('✅ Datos son directamente un array:', response);
             } else {
                 console.error('❌ Estructura de respuesta inesperada:', response);
                 console.error('❌ Tipo de response:', typeof response);
@@ -949,12 +965,6 @@ export default function PesadasCamadaView({
                 tipoEstirpeTabla = 'ross';
                 tipoEstirpeServicio = 'Ross';
             }
-            //console.log(`Tipo de ave: ${tipoAveServicio}, Tipo de estirpe: ${tipoEstirpeServicio}`);
-            // Construir el nombre del servicio y de la tabla
-            //const serviceName = `Peso${tipoAveServicio}${tipoEstirpeServicio}ApiService`;
-            //const tableName = `tb_peso_${tipoAveTabla}_${tipoEstirpeTabla}`;
-
-            //console.log(`Cargando datos de referencia para: ${serviceName} (${tableName})`);
 
             setLoadingReference(true);
             setError('');
@@ -979,7 +989,6 @@ export default function PesadasCamadaView({
                         apiService = PesoReproductoresRossApiService;
                         break;
                     case 'recrias_ross':
-                        console.log('✅ Usando PesoReproductoresRossApiService para recrias_ross');
 
                         apiService = PesoReproductoresRossApiService;
                         break;
@@ -1004,11 +1013,6 @@ export default function PesadasCamadaView({
             try {
                 const apiData = await apiService.getPesosReferencia();
 
-                // 🔍 DEBUG: Ver qué devuelve exactamente el servicio
-                console.log('🔍 DEBUG apiData completo:', apiData);
-                console.log('🔍 DEBUG apiData.length:', apiData?.length);
-                console.log('🔍 DEBUG primer elemento:', apiData?.[0]);
-                console.log('🔍 DEBUG keys del primer elemento:', Object.keys(apiData?.[0] || {}));
 
                 if (!apiData || apiData.length === 0) {
                     console.error('❌ No se recibieron datos de la API');
@@ -1019,8 +1023,6 @@ export default function PesadasCamadaView({
 
                 // Transformar los datos de la API al formato esperado por la aplicación
                 const transformedData = apiData.map(item => {
-                    console.log('🔍 DEBUG procesando item:', item);
-                    console.log('🔍 DEBUG keys disponibles:', Object.keys(item));
 
                     // ✅ ESTRUCTURA FLEXIBLE: Detectar qué campos están disponibles
                     const id = item.id || item.edad || 0;
@@ -1035,14 +1037,11 @@ export default function PesadasCamadaView({
                         item.hasOwnProperty('Machos') ||
                         item.hasOwnProperty('Hembras');
 
-                    console.log('🔍 DEBUG estructura simple (macho/hembras):', hasSimpleStructure);
-                    console.log('🔍 DEBUG estructura compleja (Mixto/Machos/Hembras):', hasComplexStructure);
 
                     let Mixto = 0, Machos = 0, Hembras = 0;
 
                     if (hasSimpleStructure) {
                         // ✅ ESTRUCTURA SIMPLE: Solo macho/hembras
-                        console.log('📊 Usando estructura SIMPLE');
 
                         Machos = item.macho || item.machos || 0;
                         Hembras = item.hembras || item.hembra || 0;
@@ -1056,11 +1055,9 @@ export default function PesadasCamadaView({
                             Mixto = Hembras;
                         }
 
-                        console.log(`📊 Valores extraídos - Machos: ${Machos}, Hembras: ${Hembras}, Mixto calculado: ${Mixto}`);
 
                     } else if (hasComplexStructure) {
                         // ✅ ESTRUCTURA COMPLEJA: Mixto/Machos/Hembras
-                        console.log('📊 Usando estructura COMPLEJA');
 
                         Mixto = item.mixto || item.Mixto || item.peso_mixto || 0;
                         Machos = item.machos || item.Machos || item.peso_machos || 0;
@@ -1069,10 +1066,8 @@ export default function PesadasCamadaView({
                         // Si Mixto está vacío pero tenemos Machos/Hembras, calcularlo
                         if (Mixto === 0 && Machos > 0 && Hembras > 0) {
                             Mixto = Math.round((Machos + Hembras) / 2);
-                            console.log(`📊 Mixto calculado como promedio: ${Mixto}`);
                         }
 
-                        console.log(`📊 Valores extraídos - Mixto: ${Mixto}, Machos: ${Machos}, Hembras: ${Hembras}`);
 
                     } else {
                         // ✅ ESTRUCTURA DESCONOCIDA: Intentar múltiples variantes
@@ -1104,23 +1099,17 @@ export default function PesadasCamadaView({
                         Hembras: Hembras
                     };
 
-                    console.log('✅ Item transformado:', transformedItem);
 
                     return transformedItem;
                 });
 
                 // ✅ DEBUG: Mostrar resumen de la transformación
-                console.log('📊 RESUMEN DE TRANSFORMACIÓN:');
-                console.log(`- Total items procesados: ${transformedData.length}`);
-                console.log(`- Primer item: `, transformedData[0]);
-                console.log(`- Último item: `, transformedData[transformedData.length - 1]);
 
                 // Verificar que tenemos datos válidos
                 const validItems = transformedData.filter(item =>
                     item.edad >= 0 && (item.Mixto > 0 || item.Machos > 0 || item.Hembras > 0)
                 );
 
-                console.log(`- Items con datos válidos: ${validItems.length}`);
 
                 if (validItems.length === 0) {
                     console.error('❌ No se encontraron items con datos válidos después de la transformación');
@@ -1143,18 +1132,14 @@ export default function PesadasCamadaView({
                 // Ordenar por edad para asegurar consistencia
                 transformedData.sort((a, b) => a.edad - b.edad);
 
-                console.log('✅ Datos finales ordenados:', transformedData.slice(0, 5)); // Mostrar los primeros 5
 
                 // Establecer los datos de referencia
                 setReferenceData(transformedData);
 
                 // 🔍 DEBUG: Ver datos transformados
-                console.log('🔍 DEBUG transformedData:', transformedData);
-                console.log('🔍 DEBUG primeros 3 transformados:', transformedData.slice(0, 3));
 
                 // Establecer los datos de referencia
                 setReferenceData(transformedData);
-                console.log('✅ referenceData establecido correctamente');
 
             } catch (apiError) {
                 console.error('❌ Error al obtener datos de la API:', apiError);
@@ -1172,15 +1157,67 @@ export default function PesadasCamadaView({
 
 
     // Calcular la edad de la camada en días para una fecha específica
-    const calculateCamadaAge = (date = new Date()) => {
-        if (!camadaInfo || !camadaInfo.fecha_hora_inicio) return null;
+    function calculateCamadaAge(date = new Date()) {
+        if (!camadaInfo || !camadaInfo.fecha_hora_inicio) {
+            console.warn('[calculateCamadaAge] Información de camada incompleta', {
+                camadaInfo
+            });
+            return null;
+        }
 
         const startDate = new Date(camadaInfo.fecha_hora_inicio);
-        const diffTime = Math.abs(date - startDate);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        if (isNaN(startDate.getTime())) {
+            console.error('[calculateCamadaAge] Fecha de inicio inválida', {
+                fecha_hora_inicio: camadaInfo.fecha_hora_inicio
+            });
+            return null;
+        }
+
+        const targetDate = date instanceof Date ? date : new Date(date);
+        if (isNaN(targetDate.getTime())) {
+            console.error('[calculateCamadaAge] Fecha objetivo inválida', { date });
+            return null;
+        }
+
+        const normalizeToDateOnly = (dateObj) =>
+            new Date(Date.UTC(
+                dateObj.getFullYear(),
+                dateObj.getMonth(),
+                dateObj.getDate()
+            ));
+
+        const normalizedStart = normalizeToDateOnly(startDate);
+        const normalizedTarget = normalizeToDateOnly(targetDate);
+
+        const diffTime = Math.abs(normalizedTarget - normalizedStart); const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        console.log('[calculateCamadaAge] Calculando edad de camada', {
+            fechaObjetivo: targetDate,
+            fechaInicio: startDate,
+            edadCalculada: diffDays
+        });
 
         return diffDays;
+    }
+
+
+    const resolveConsultedAge = () => {
+        let targetDate = null;
+
+        if (fecha) {
+            targetDate = new Date(fecha);
+        } else if (pesadasRangoData && pesadasRangoData.length > 0) {
+            const lastReading = pesadasRangoData[pesadasRangoData.length - 1];
+            targetDate = new Date(lastReading.fecha);
+        }
+
+        if (targetDate && !isNaN(targetDate.getTime())) {
+            return calculateCamadaAge(targetDate);
+        }
+
+        return calculateCamadaAge();
     };
+
 
     // Obtener el sexaje de la camada
     const getCamadaSexaje = () => {
@@ -2965,11 +3002,11 @@ export default function PesadasCamadaView({
                         estadoTexto = pesada.estado || 'Desconocido';
                 }
 
-                // ✅ NUEVA FILA: Incluye la edad de la pesada
+                // ✅ CORREGIDO: Agregar valores numéricos directamente (sin .toFixed)
                 const dataRow = worksheet.addRow([
                     pesada.id_dispositivo,
-                    parseFloat(pesada.valor).toFixed(1),
-                    edadPesada || 0, // Nueva columna de edad
+                    parseFloat(pesada.valor),        // ← NUMBER sin .toFixed()
+                    parseInt(edadPesada) || 0,       // ← NUMBER entero
                     hora,
                     estadoTexto,
                     observaciones
@@ -2989,27 +3026,25 @@ export default function PesadasCamadaView({
                     }
 
                     // Centrar contenido (excepto observaciones)
-                    if (colNumber !== 6) { // ✅ ACTUALIZADO: Cambió de 5 a 6 para nueva columna
+                    if (colNumber !== 6) {
                         cell.alignment = { horizontal: 'center', vertical: 'middle' };
                     }
 
-                    // Color del estado - ✅ ACTUALIZADO: Cambió de columna 4 a 5
+                    // Color del estado
                     if (colNumber === 5) {
                         cell.font = { bold: true, color: { argb: colorEstado } };
                     }
 
-                    // Formato del peso
+                    // ✅ SOLO formato visual (NO cambiar cell.type ni cell.value)
                     if (colNumber === 2) {
                         cell.numFmt = '#,##0.0 "g"';
                     }
 
-                    // ✅ NUEVO: Formato de la edad (columna 3)
                     if (colNumber === 3) {
                         cell.numFmt = '#,##0 "días"';
                     }
                 });
             });
-
             // RESUMEN AL FINAL
             worksheet.addRow([]);
             const resumenRow = worksheet.addRow(['RESUMEN ESTADÍSTICO']);

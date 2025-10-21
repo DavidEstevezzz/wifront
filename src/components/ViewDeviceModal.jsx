@@ -307,7 +307,7 @@ export default function ViewDeviceModal({ isOpen, onClose, device }) {
                         <FontAwesomeIcon icon={faNetworkWired} className="w-5 mr-2 text-purple-500" />
                         <span className="w-36 text-sm font-medium text-gray-600 dark:text-gray-400">Tiempo de Envío:</span>
                         <span className="text-sm text-gray-800 dark:text-white">
-                          {displayDevice.tiempoEnvio ? `${displayDevice.tiempoEnvio} minutos` : 'N/A'}
+                          {displayDevice.tiempoEnvio ? `${displayDevice.tiempoEnvio} segundos` : 'N/A'}
                         </span>
                       </div>
                       <div className="flex items-center">

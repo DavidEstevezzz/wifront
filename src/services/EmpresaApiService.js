@@ -53,6 +53,19 @@ class EmpresaApiService {
       throw error;
     }
   }
+
+ /**
+ * Obtener usuarios activos relacionados con una empresa específica
+ */
+async getUsuariosByEmpresa(empresaId) {
+  try {
+    const response = await BaseApiService.get(`${API_URL}/api/empresas/${empresaId}/usuarios`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error obteniendo usuarios de empresa ${empresaId}:`, error);
+    throw error;
+  }
+}
 }
 
 export default new EmpresaApiService();

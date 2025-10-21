@@ -29,15 +29,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Estado para controlar las pestañas
+  // Estado para controlar las pestañas (reordenado)
   const [tabIndex, setTabIndex] = useState(0);
   const [tabsEnabled, setTabsEnabled] = useState({
     info: true,
-    luz: false,
-    actividad: false,
-    temperatura: false,
-    pesoMedio: false,
-    pesadasCamada: false
+    pesoMedio: false,        // Análisis de Peso por Granja
+    pesadasCamada: false,    // Análisis de Peso por Camada
+    temperatura: false,      // Monitoreo de Temperatura
+    actividad: false,        // Monitoreo de Actividad
+    luz: false,              // Monitoreo de Luz
   });
 
   // 1. Cargar empresas según tipo de usuario
@@ -135,10 +135,10 @@ export default function Dashboard() {
       // Deshabilitar pestañas que requieren una camada
       setTabsEnabled(prev => ({
         ...prev,
-        luz: false,
-        actividad: false,
+        pesadasCamada: false,
         temperatura: false,
-        pesadasCamada: false
+        actividad: false,
+        luz: false,
       }));
       return;
     }
@@ -152,10 +152,10 @@ export default function Dashboard() {
         // Habilitar pestañas que requieren una camada
         setTabsEnabled(prev => ({
           ...prev,
-          luz: true,
-          actividad: true,
+          pesadasCamada: true,
           temperatura: true,
-          pesadasCamada: true
+          actividad: true,
+          luz: true,
         }));
       })
       .catch(error => {
@@ -165,15 +165,15 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [selectedCamada]);
 
-  // Función para cambiar de pestaña con validación
+  // Función para cambiar de pestaña con validación (reordenado)
   const handleTabSelect = (index) => {
-    // Validar si se puede cambiar a la pestaña
+    // Validar si se puede cambiar a la pestaña (con nuevo orden)
     if (index === 0 || // Siempre permitir la pestaña de información
-      (index === 1 && tabsEnabled.luz) || // Pestaña de luz
-      (index === 2 && tabsEnabled.actividad) || // Pestaña de actividad
-      (index === 3 && tabsEnabled.temperatura) || // Pestaña de temperatura
-      (index === 4 && tabsEnabled.pesoMedio) || // Pestaña de peso medio
-      (index === 5 && tabsEnabled.pesadasCamada)) { // Pestaña de actividad
+      (index === 1 && tabsEnabled.pesoMedio) || // Análisis de Peso por Granja
+      (index === 2 && tabsEnabled.pesadasCamada) || // Análisis de Peso por Camada
+      (index === 3 && tabsEnabled.temperatura) || // Monitoreo de Temperatura
+      (index === 4 && tabsEnabled.actividad) || // Monitoreo de Actividad
+      (index === 5 && tabsEnabled.luz)) { // Monitoreo de Luz
       setTabIndex(index);
     }
   };
@@ -190,18 +190,8 @@ export default function Dashboard() {
     return null;
   };
 
-  // Y llamarlo en el JSX justo después del mensaje de error
-  {
-    error && (
-      <div className="bg-red-100 border border-red-400 text-red-700 dark:bg-red-900 dark:border-red-700 dark:text-red-100 px-4 py-3 rounded mb-4">
-        {error}
-      </div>
-    )
-  }
-  { renderNoAccessMessage() }
-
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-200">
         Dashboard de Monitoreo
       </h1>
@@ -212,16 +202,20 @@ export default function Dashboard() {
         </div>
       )}
 
+      {renderNoAccessMessage()}
+
       {/* Filtros generales */}
-      <div className="p-6 rounded-lg shadow-md mb-6 bg-gray-50 dark:bg-gray-800">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded shadow">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Empresa */}
           <div>
-            <label className="block mb-1 font-medium text-gray-800 dark:text-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Empresa
             </label>
             <select
-              className="w-full p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+                         focus:ring-2 focus:ring-blue-500"
               value={selectedEmpresa}
               onChange={(e) => {
                 setSelectedEmpresa(e.target.value);
@@ -231,7 +225,7 @@ export default function Dashboard() {
               }}
               disabled={loading || empresas.length === 0}
             >
-              <option value="">-- Seleccione empresa --</option>
+              <option value="">Seleccionar empresa</option>
               {empresas.map((empresa) => (
                 <option key={empresa.id} value={empresa.id}>
                   {empresa.nombre_empresa || empresa.nombre}
@@ -242,11 +236,13 @@ export default function Dashboard() {
 
           {/* Granja */}
           <div>
-            <label className="block mb-1 font-medium text-gray-800 dark:text-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Granja
             </label>
             <select
-              className="w-full p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+                         focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-600"
               value={selectedGranja}
               onChange={(e) => {
                 setSelectedGranja(e.target.value);
@@ -255,7 +251,7 @@ export default function Dashboard() {
               }}
               disabled={loading || !selectedEmpresa || granjas.length === 0}
             >
-              <option value="">-- Seleccione granja --</option>
+              <option value="">Seleccionar granja</option>
               {granjas.map((granja) => (
                 <option key={granja.id} value={granja.numero_rega}>
                   {granja.nombre} ({granja.numero_rega})
@@ -271,16 +267,18 @@ export default function Dashboard() {
 
           {/* Camada */}
           <div>
-            <label className="block mb-1 font-medium text-gray-800 dark:text-gray-200">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Camada
             </label>
             <select
-              className="w-full p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white"
+              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md 
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+                         focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-600"
               value={selectedCamada}
               onChange={(e) => setSelectedCamada(e.target.value)}
               disabled={loading || !selectedGranja || camadas.length === 0}
             >
-              <option value="">-- Seleccione camada --</option>
+              <option value="">Seleccionar camada</option>
               {camadas.map((camada) => (
                 <option key={camada.id_camada} value={camada.id_camada}>
                   {camada.nombre_camada}
@@ -298,27 +296,23 @@ export default function Dashboard() {
 
       {/* Información de camada seleccionada */}
       {camadaInfo && (
-        <div className="p-4 bg-white dark:bg-gray-800 rounded shadow mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
-            Información de la camada
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded shadow">
+          <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
+            Información de la Camada: {camadaInfo.nombre_camada}
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <span className="block text-sm text-gray-500 dark:text-gray-400">Nombre:</span>
-              <span className="font-medium">{camadaInfo.nombre_camada}</span>
-            </div>
-            <div>
-              <span className="block text-sm text-gray-500 dark:text-gray-400">Tipo de ave:</span>
+              <span className="block text-gray-500 dark:text-gray-400">Tipo de ave:</span>
               <span className="font-medium">{camadaInfo.tipo_ave} {camadaInfo.tipo_estirpe}</span>
             </div>
             <div>
-              <span className="block text-sm text-gray-500 dark:text-gray-400">Fecha inicio:</span>
+              <span className="block text-gray-500 dark:text-gray-400">Fecha inicio:</span>
               <span className="font-medium">
                 {camadaInfo.fecha_hora_inicio ? new Date(camadaInfo.fecha_hora_inicio).toLocaleDateString() : 'N/A'}
               </span>
             </div>
             <div>
-              <span className="block text-sm text-gray-500 dark:text-gray-400">Edad actual:</span>
+              <span className="block text-gray-500 dark:text-gray-400">Edad actual:</span>
               <span className="font-medium">
                 {camadaInfo.fecha_hora_inicio ?
                   Math.floor((new Date() - new Date(camadaInfo.fecha_hora_inicio)) / (1000 * 60 * 60 * 24)) + ' días'
@@ -329,9 +323,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Sistema de pestañas */}
+      {/* Sistema de pestañas con orden reordenado */}
       <Tabs selectedIndex={tabIndex} onSelect={handleTabSelect}>
         <TabList className="flex border-b mb-4">
+          {/* 1. Información General */}
           <Tab
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors cursor-pointer
                         ${tabIndex === 0
@@ -340,28 +335,34 @@ export default function Dashboard() {
           >
             Información General
           </Tab>
+          
+          {/* 2. Análisis de Peso por Granja */}
           <Tab
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors 
-                        ${!tabsEnabled.luz
+                        ${!tabsEnabled.pesoMedio
                 ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                 : tabIndex === 1
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 cursor-pointer'}`}
-            disabled={!tabsEnabled.luz}
+            disabled={!tabsEnabled.pesoMedio}
           >
-            Monitoreo de Luz
+            Análisis de Peso por Granja
           </Tab>
+          
+          {/* 3. Análisis de Peso por Camada */}
           <Tab
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors 
-                        ${!tabsEnabled.actividad
+                        ${!tabsEnabled.pesadasCamada
                 ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                 : tabIndex === 2
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 cursor-pointer'}`}
-            disabled={!tabsEnabled.actividad}
+            disabled={!tabsEnabled.pesadasCamada}
           >
-            Monitoreo de Actividad
+            Análisis de Peso por Camada
           </Tab>
+          
+          {/* 4. Monitoreo de Temperatura */}
           <Tab
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors 
                         ${!tabsEnabled.temperatura
@@ -371,34 +372,39 @@ export default function Dashboard() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 cursor-pointer'}`}
             disabled={!tabsEnabled.temperatura}
           >
-            Temperatura y Humedad
+            Monitoreo de Temperatura
           </Tab>
+          
+          {/* 5. Monitoreo de Actividad */}
           <Tab
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors 
-                        ${!tabsEnabled.pesoMedio
+                        ${!tabsEnabled.actividad
                 ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                 : tabIndex === 4
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 cursor-pointer'}`}
-            disabled={!tabsEnabled.pesoMedio}
+            disabled={!tabsEnabled.actividad}
           >
-            Peso Medio Granjas
+            Monitoreo de Actividad
           </Tab>
+          
+          {/* 6. Monitoreo de Luz */}
           <Tab
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors 
-    ${!tabsEnabled.pesadasCamada
+                        ${!tabsEnabled.luz
                 ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
                 : tabIndex === 5
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer'
                   : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 cursor-pointer'}`}
-            disabled={!tabsEnabled.pesadasCamada}
+            disabled={!tabsEnabled.luz}
           >
-            Pesadas Dispositivos
+            Monitoreo de Luz
           </Tab>
         </TabList>
 
+        {/* TabPanels reordenados para coincidir con el nuevo orden */}
+        {/* Panel 0: Información General */}
         <TabPanel>
-          {/* Contenido de la pestaña de Información General */}
           <div className="p-6 bg-white dark:bg-gray-800 rounded shadow">
             <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">
               Información General
@@ -429,7 +435,7 @@ export default function Dashboard() {
                       Para habilitar todas las funciones de monitoreo de aves, seleccione una camada.
                     </p>
                     <p className="text-yellow-700 dark:text-yellow-200 mt-2">
-                      La pestaña de Peso Medio ya está activa y no requiere seleccionar una camada.
+                      La pestaña de Análisis de Peso por Granja ya está activa y no requiere seleccionar una camada.
                     </p>
                   </div>
                 )}
@@ -442,65 +448,65 @@ export default function Dashboard() {
           </div>
         </TabPanel>
 
+        {/* Panel 1: Análisis de Peso por Granja */}
         <TabPanel>
-          {/* Vista de Monitoreo de Luz */}
-          {tabsEnabled.luz && (
-            <MonitoreoLuzView
-              selectedEmpresa={selectedEmpresa}
-              selectedGranja={selectedGranja}
-              selectedCamada={selectedCamada}
-              camadaInfo={camadaInfo}
-              isEmbedded={true} // Indica que está en modo incrustado
-            />
-          )}
-        </TabPanel>
-
-        <TabPanel>
-          {/* Vista de Monitoreo de Actividad */}
-          {tabsEnabled.actividad && (
-            <ActividadAvesView
-              selectedEmpresa={selectedEmpresa}
-              selectedGranja={selectedGranja}
-              selectedCamada={selectedCamada}
-              camadaInfo={camadaInfo}
-              isEmbedded={true} // Indica que está en modo incrustado
-            />
-          )}
-        </TabPanel>
-
-        <TabPanel>
-          {/* Vista de Temperatura y Humedad */}
-          {tabsEnabled.temperatura && (
-            <TemperaturaHumedadView
-              selectedEmpresa={selectedEmpresa}
-              selectedGranja={selectedGranja}
-              selectedCamada={selectedCamada}
-              camadaInfo={camadaInfo}
-              isEmbedded={true} // Indica que está en modo incrustado
-            />
-          )}
-        </TabPanel>
-
-        <TabPanel>
-          {/* Vista de Peso Medio */}
           {tabsEnabled.pesoMedio && (
             <PesoMedioGranjaView
               selectedEmpresa={selectedEmpresa}
               selectedGranja={selectedGranja}
-              isEmbedded={true} // Indica que está en modo incrustado
+              isEmbedded={true}
             />
           )}
         </TabPanel>
 
+        {/* Panel 2: Análisis de Peso por Camada */}
         <TabPanel>
-          {/* Vista de Pesadas de Camada */}
           {tabsEnabled.pesadasCamada && (
             <PesadasCamadaView
               selectedEmpresa={selectedEmpresa}
               selectedGranja={selectedGranja}
               selectedCamada={selectedCamada}
               camadaInfo={camadaInfo}
-              isEmbedded={true} // Indica que está en modo incrustado
+              isEmbedded={true}
+            />
+          )}
+        </TabPanel>
+
+        {/* Panel 3: Monitoreo de Temperatura */}
+        <TabPanel>
+          {tabsEnabled.temperatura && (
+            <TemperaturaHumedadView
+              selectedEmpresa={selectedEmpresa}
+              selectedGranja={selectedGranja}
+              selectedCamada={selectedCamada}
+              camadaInfo={camadaInfo}
+              isEmbedded={true}
+            />
+          )}
+        </TabPanel>
+
+        {/* Panel 4: Monitoreo de Actividad */}
+        <TabPanel>
+          {tabsEnabled.actividad && (
+            <ActividadAvesView
+              selectedEmpresa={selectedEmpresa}
+              selectedGranja={selectedGranja}
+              selectedCamada={selectedCamada}
+              camadaInfo={camadaInfo}
+              isEmbedded={true}
+            />
+          )}
+        </TabPanel>
+
+        {/* Panel 5: Monitoreo de Luz */}
+        <TabPanel>
+          {tabsEnabled.luz && (
+            <MonitoreoLuzView
+              selectedEmpresa={selectedEmpresa}
+              selectedGranja={selectedGranja}
+              selectedCamada={selectedCamada}
+              camadaInfo={camadaInfo}
+              isEmbedded={true}
             />
           )}
         </TabPanel>

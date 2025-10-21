@@ -277,103 +277,108 @@ export default function CreateDeviceModal({ isOpen, onClose, onDeviceCreated }) 
 
   // Enviar formulario siguiendo las validaciones de los controladores
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!validateForm()) {
-      return;
+  if (!validateForm()) {
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+
+  try {
+    // ✅ PASO 1: Crear el DISPOSITIVO PRIMERO (sin id_instalacion)
+    const dispositivoData = {
+      id_instalacion: null, // ← NULL temporalmente
+      numero_serie: formData.numero_serie,
+      ip_address: formData.ip_address,
+      bateria: formData.bateria,
+      fecha_hora_alta: formData.fecha_hora_alta,
+      alta: formData.calibrado,
+      calibrado: formData.calibrado,
+      pesoCalibracion: formData.pesoCalibracion,
+      runCalibracion: formData.runCalibracion,
+      sensoresConfig: formData.sensoresConfig,
+      Lat: formData.Lat,
+      Lon: formData.Lon,
+      fw_version: formData.fw_version,
+      hw_version: formData.hw_version,
+      count: formData.count,
+      sensorMovimiento: formData.sensorMovimiento,
+      sensorCarga: formData.sensorCarga,
+      sensorLuminosidad: formData.sensorLuminosidad,
+      sensorHumSuelo: formData.sensorHumSuelo,
+      sensorTempAmbiente: formData.sensorTempAmbiente,
+      sensorHumAmbiente: formData.sensorHumAmbiente,
+      sensorPresion: formData.sensorPresion,
+      tiempoEnvio: formData.tiempoEnvio,
+      sensorTempYacija: formData.sensorTempYacija,
+      errorCalib: formData.errorCalib,
+      reset: formData.reset,
+      sensorCalidadAireCO2: formData.sensorCalidadAireCO2,
+      sensorCalidadAireTVOC: formData.sensorCalidadAireTVOC,
+      sensorSHT20_temp: formData.sensorSHT20_temp,
+      sensorSHT20_humedad: formData.sensorSHT20_humedad
+    };
+
+    console.log('✅ PASO 1: Creando dispositivo primero...', dispositivoData);
+    const dispositivoResponse = await DispositivoApiService.create(dispositivoData);
+    console.log('✅ Dispositivo creado:', dispositivoResponse);
+
+    // ✅ PASO 2: Crear la INSTALACIÓN con el id_dispositivo
+    const instalacionData = {
+      id_dispositivo: dispositivoResponse.id_dispositivo, // ← ID del dispositivo recién creado
+      id_usuario: parseInt(formData.id_usuario),
+      numero_rega: formData.numero_rega,
+      fecha_hora_alta: formData.fecha_hora_alta,
+      alta: formData.alta,
+      id_nave: formData.id_nave
+    };
+
+    console.log('✅ PASO 2: Creando instalación...', instalacionData);
+    const instalacionResponse = await InstalacionApiService.createInstalacion(instalacionData);
+    console.log('✅ Instalación creada y dispositivo actualizado:', instalacionResponse);
+
+    setLoading(false);
+
+    // Notificar éxito
+    if (onDeviceCreated) {
+      onDeviceCreated({
+        dispositivo: dispositivoResponse,
+        instalacion: instalacionResponse
+      });
     }
 
-    setLoading(true);
-    setError('');
+    onClose();
 
-    try {
-      // Paso 1: Crear la instalación
-      const instalacionData = {
-        id_usuario: parseInt(formData.id_usuario),
-        numero_rega: formData.numero_rega,
-        fecha_hora_alta: formData.fecha_hora_alta,
-        alta: formData.alta,
-        id_nave: formData.id_nave
-      };
+  } catch (err) {
+    console.error('❌ Error creating device:', err);
 
-      const instalacionResponse = await InstalacionApiService.createInstalacion(instalacionData);
+    // Manejar errores específicos
+    if (err.response && err.response.data) {
+      if (err.response.data.message && err.response.data.message.includes('mismo código')) {
+        setError('Error: Ya existe un dispositivo con el mismo número de serie. Introduzca otro código.');
+      } else if (err.response.data.errors) {
+        const backendErrors = err.response.data.errors;
+        const formattedErrors = {};
 
-      // Paso 2: Crear el dispositivo con el ID de la instalación
-      const dispositivoData = {
-        id_instalacion: instalacionResponse.id,
-        numero_serie: formData.numero_serie,
-        ip_address: formData.ip_address,
-        bateria: formData.bateria,
-        fecha_hora_alta: formData.fecha_hora_alta,
-        alta: formData.calibrado, // boolean
-        calibrado: formData.calibrado, // boolean
-        pesoCalibracion: formData.pesoCalibracion,
-        runCalibracion: formData.runCalibracion, // boolean
-        sensoresConfig: formData.sensoresConfig,
-        Lat: formData.Lat,
-        Lon: formData.Lon,
-        fw_version: formData.fw_version,
-        hw_version: formData.hw_version,
-        count: formData.count,
-        sensorMovimiento: formData.sensorMovimiento,
-        sensorCarga: formData.sensorCarga,
-        sensorLuminosidad: formData.sensorLuminosidad,
-        sensorHumSuelo: formData.sensorHumSuelo,
-        sensorTempAmbiente: formData.sensorTempAmbiente,
-        sensorHumAmbiente: formData.sensorHumAmbiente,
-        sensorPresion: formData.sensorPresion,
-        tiempoEnvio: formData.tiempoEnvio,
-        sensorTempYacija: formData.sensorTempYacija,
-        errorCalib: formData.errorCalib,
-        reset: formData.reset, // boolean
-        sensorCalidadAireCO2: formData.sensorCalidadAireCO2,
-        sensorCalidadAireTVOC: formData.sensorCalidadAireTVOC,
-        sensorSHT20_temp: formData.sensorSHT20_temp,
-        sensorSHT20_humedad: formData.sensorSHT20_humedad
-      };
-
-      const dispositivoResponse = await DispositivoApiService.createDispositivo(dispositivoData);
-
-      setLoading(false);
-
-      // Notificar éxito
-      if (onDeviceCreated) {
-        onDeviceCreated({
-          dispositivo: dispositivoResponse,
-          instalacion: instalacionResponse
+        Object.keys(backendErrors).forEach(key => {
+          formattedErrors[key] = Array.isArray(backendErrors[key])
+            ? backendErrors[key][0]
+            : backendErrors[key];
         });
-      }
 
-      onClose();
-
-    } catch (err) {
-      console.error('Error creating device:', err);
-
-      // Manejar errores específicos
-      if (err.response && err.response.data) {
-        if (err.response.data.message && err.response.data.message.includes('mismo código')) {
-          setError('Error: Ya existe un dispositivo con el mismo número de serie. Introduzca otro código.');
-        } else if (err.response.data.errors) {
-          const backendErrors = err.response.data.errors;
-          const formattedErrors = {};
-
-          Object.keys(backendErrors).forEach(key => {
-            formattedErrors[key] = Array.isArray(backendErrors[key])
-              ? backendErrors[key][0]
-              : backendErrors[key];
-          });
-
-          setFormErrors(formattedErrors);
-        } else {
-          setError(err.response.data.message || 'Error al crear el dispositivo.');
-        }
+        setFormErrors(formattedErrors);
       } else {
-        setError('Error de conexión. Por favor, inténtelo de nuevo.');
+        setError(err.response.data.message || 'Error al crear el dispositivo.');
       }
-
-      setLoading(false);
+    } else {
+      setError('Error de conexión. Por favor, inténtelo de nuevo.');
     }
-  };
+
+    setLoading(false);
+  }
+};
 
   // Si el modal no está abierto, no renderizar nada
   if (!isOpen) return null;
