@@ -474,77 +474,63 @@ export default function PesadasCamadaView({
         if (!camadaInfo && !propCamadaInfo) return null;
 
         const infoToUse = camadaInfo || propCamadaInfo;
-        let consultedAge = null;
         let pesoObjetivo = null;
 
-        const fallbackAge = resolveConsultedAge();
-        const normalizedFallbackAge = Number.isFinite(fallbackAge)
-            ? Math.floor(fallbackAge)
-            : null;
+        // ✅ USAR LA FECHA CONSULTADA, no la fecha actual
+        let fechaConsultada = null;
 
+        if (fecha) {
+            // Si hay fecha seleccionada en el formulario
+            fechaConsultada = new Date(fecha);
+        } else if (pesadasData && pesadasData.peso_referencia && pesadasData.peso_referencia.edad_dias !== undefined) {
+            // Usar la edad que viene del backend directamente
+            const edadBackend = pesadasData.peso_referencia.edad_dias;
+            const sexaje = getCamadaSexaje();
 
-        // ✅ PRIORIDAD 1: Usar peso_referencia del backend si está disponible
-        if (pesadasData && pesadasData.peso_referencia) {
-
-            const backendAge = pesadasData.peso_referencia.edad_dias;
-            const normalizedBackendAge = Number.isFinite(backendAge)
-                ? Math.floor(backendAge)
-                : null;
-
-            const isBackendAgeValid = normalizedBackendAge !== null && normalizedBackendAge >= 0;
-
-            pesoObjetivo = pesadasData.peso_referencia.valor;
-            consultedAge = normalizedFallbackAge !== null
-                ? normalizedFallbackAge
-                : (isBackendAgeValid ? normalizedBackendAge : null);
-
-            console.log('✅ Usando peso_referencia del backend:', {
-                peso: pesoObjetivo,
-                edad_backend: backendAge,
-                edad_utilizada: consultedAge,
-                recalculada: !isBackendAgeValid,
-                tabla: pesadasData.peso_referencia.tabla_usada,
-                sexaje: pesadasData.peso_referencia.sexaje
-            });
-
-            if (!isBackendAgeValid) {
-                console.warn('⚠️ Edad de backend inválida, usando calculateCamadaAge()', {
-                    backendAge,
-                    fallbackAge: normalizedFallbackAge
-
-                });
-            }
-        }
-        // ✅ FALLBACK: Si no hay peso_referencia, usar el método anterior (para rango)
-        else {
-            consultedAge = normalizedFallbackAge;
-
-
-            // Obtener de referenceData (método anterior)
-            if (referenceData && consultedAge !== null) {
-                const sexaje = getCamadaSexaje();
-                const refData = referenceData.find(d => d.edad === consultedAge);
-
+            // Buscar peso objetivo con la edad del backend
+            if (referenceData && Number.isFinite(edadBackend)) {
+                const refData = referenceData.find(d => d.edad === Math.floor(edadBackend));
                 if (refData) {
-                    switch (sexaje.toLowerCase()) {
-                        case 'machos':
-                        case 'macho':
-                            pesoObjetivo = refData.Machos || refData.machos || refData.macho;
-                            break;
-                        case 'hembras':
-                        case 'hembra':
-                            pesoObjetivo = refData.Hembras || refData.hembras || refData.hembra;
-                            break;
-                        default:
-                            pesoObjetivo = refData.Mixto || refData.mixto || refData.Machos || refData.machos || refData.macho;
-                            break;
-                    }
+                    pesoObjetivo = refData[sexaje] || refData.Mixto || refData.Machos;
+                }
+            }
 
-                    console.log('✅ Usando referenceData (fallback):', {
-                        edad: consultedAge,
-                        sexaje,
-                        pesoObjetivo
-                    });
+            return {
+                edad: Math.floor(edadBackend),
+                pesoObjetivo: pesoObjetivo || pesadasData.peso_referencia.valor,
+                sexaje: sexaje,
+                uniformidad: calculateUniformityCoefficient(
+                    getFilteredDailyPesadas().filter(p => p.estado === 'aceptada'),
+                    getFilteredDailyStats().peso_medio_aceptadas
+                ),
+                nombreCamada: infoToUse.nombre_camada
+            };
+        }
+
+        // Calcular edad con la fecha consultada
+        const consultedAge = fechaConsultada ? calculateCamadaAge(fechaConsultada) : null;
+        const normalizedAge = Number.isFinite(consultedAge) ? Math.floor(consultedAge) : null;
+
+        // Obtener sexaje
+        const sexaje = getCamadaSexaje();
+
+        // Calcular peso objetivo usando referenceData y la edad de la fecha consultada
+        if (referenceData && normalizedAge !== null) {
+            const refData = referenceData.find(d => d.edad === normalizedAge);
+
+            if (refData) {
+                switch (sexaje.toLowerCase()) {
+                    case 'machos':
+                    case 'macho':
+                        pesoObjetivo = refData.Machos || refData.machos || refData.macho;
+                        break;
+                    case 'hembras':
+                    case 'hembra':
+                        pesoObjetivo = refData.Hembras || refData.hembras || refData.hembra;
+                        break;
+                    default:
+                        pesoObjetivo = refData.Mixto || refData.mixto || refData.Machos || refData.machos || refData.macho;
+                        break;
                 }
             }
         }
@@ -555,8 +541,9 @@ export default function PesadasCamadaView({
         const uniformidad = calculateUniformityCoefficient(pesadasAceptadas, filteredStats.peso_medio_aceptadas);
 
         return {
-            edad: Number.isFinite(consultedAge) ? Math.floor(consultedAge) : consultedAge,
+            edad: normalizedAge,
             pesoObjetivo: pesoObjetivo || null,
+            sexaje: sexaje,
             uniformidad,
             nombreCamada: infoToUse.nombre_camada
         };
@@ -3848,7 +3835,7 @@ export default function PesadasCamadaView({
                     </p>
                     {enhancedInfo?.pesoObjetivo && (
                         <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            Objetivo: {enhancedInfo.pesoObjetivo}g
+                            Objetivo: {enhancedInfo.pesoObjetivo}g ({enhancedInfo.sexaje})
                         </p>
                     )}
                 </div>

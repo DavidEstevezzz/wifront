@@ -445,16 +445,7 @@ export default function Users() {
                                 <FontAwesomeIcon icon={faEdit} />
                               </button>
 
-                              <button
-                                onClick={() => handleToggleStatus(usuario)}
-                                className={`p-1 ${usuario.alta
-                                  ? 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300'
-                                  : 'text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300'
-                                  }`}
-                                title={usuario.alta ? 'Desactivar usuario' : 'Activar usuario'}
-                              >
-                                <FontAwesomeIcon icon={usuario.alta ? faBan : faCheckCircle} />
-                              </button>
+                            
 
                               <button
                                 onClick={() => openDeleteModal(usuario)}
