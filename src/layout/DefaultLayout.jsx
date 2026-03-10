@@ -5,7 +5,7 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 import { useState } from "react";
 import AuthApiService from "../services/AuthApiService";
 import Aside from "../components/Aside";
-import Header from "../components/header";
+import Header from "../components/Header";
 
 export default function DefaultLayout() {
     const { user, token, setUser, setToken, isLoading } = useStateContext();
